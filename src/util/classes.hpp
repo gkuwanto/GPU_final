@@ -96,6 +96,15 @@ class Transaction {
         std::string getLocktime();
 };
 
+class TransactionFactory {
+    private:
+        unsigned long long int current_block_level;
+    
+    public:
+        TransactionFactory();
+        Transaction generateTransaction(const std::vector<Output>&);
+};
+
 class Address {
     private:
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey private_key;
@@ -104,8 +113,8 @@ class Address {
     public:
         Address();
 
-        void setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey private_key);
-        void getPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey public_key);
+        void setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey&);
+        void setPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&);
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey getPrivateKey();
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey getPublicKey();
 };

@@ -1,5 +1,6 @@
-#include <string>
 #include <iostream>
+#include <string>
+#include <sstream>
 #include <crypto++/osrng.h>
 #include <crypto++/asn.h>
 #include <crypto++/oids.h>
@@ -82,21 +83,18 @@ void Transaction::setTransaction(string raw_transaction) {
     // Store locktime
     this->locktime = raw_transaction.substr(offset, TRANSACTION_LOCKTIME_SIZE);
     offset += TRANSACTION_LOCKTIME_SIZE;
-
-    cout << "Transaction size = " << offset << endl;
 }
 string Transaction::serialize() {
     string container = "";
-    
     container += this->version;
 
-    this->input_count_prefix.size() > 0 ? container += this->input_count_prefix : nullptr;
+    container += this->input_count_prefix;
     container += this->input_count;
     for (vector<Input>::iterator it = this->input.begin(); it != input.end(); it++) {
         container += it->serialize();
     }
 
-    this->output_count_prefix.size() > 0 ? container += this->output_count_prefix : nullptr;
+    container += this->output_count_prefix;
     container += this->output_count;
     for (vector<Output>::iterator it = this->output.begin(); it != this->output.end(); it++) {
         container += it->serialize();
@@ -135,11 +133,11 @@ Input::Input(const Input& input) {
 }
 string Input::serialize() {
     string container = "";
-
+    
     container += this->tx_id;
     container += this->v_out;
 
-    this->script_sig_size_prefix.size() > 0 ? container += this->script_sig_size_prefix : nullptr;
+    container += this->script_sig_size_prefix;
     container += this->script_sig_size;
     container += this->script_sig;
     container += this->sequence;
@@ -172,7 +170,7 @@ string Output::serialize() {
     string container = "";
 
     container += this->value;
-    this->script_pub_key_prefix.size() > 0 ? container += this->script_pub_key_prefix : nullptr;
+    container += this->script_pub_key_prefix;
     container += this->script_pub_key_size;
     container += this->script_pub_key;
 
@@ -190,9 +188,56 @@ string Output::getScriptPubKey() { return this->script_pub_key; }
 string Output::getSequence() { return this->sequence; }
 
 
+TransactionFactory::TransactionFactory() {
+    this->current_block_level = 0;
+}
+Transaction TransactionFactory::generateTransaction(const vector<Output>& outputs) {
+    Transaction transaction;
+
+    transaction.setVersion("01000000");
+    transaction.setInputCountPrefix("");
+    transaction.setInputCount("01");
+
+    Input input;
+    input.setTxID("0000000000000000000000000000000000000000000000000000000000000000");
+    input.setVOUT("FFFFFFFF");
+    input.setScriptSigSizePrefix("");
+    input.setScriptSigSize("18");
+    input.setScriptSig("494634303434202D204750552050524F4752414D4D494E47");
+    input.setSequence("FFFFFFFF");
+    
+    vector<Input> inputs;
+    inputs.push_back(input);
+    transaction.setInput(inputs);
+
+    string output_count_prefix;
+    string output_count;
+    integer_to_hex_string(outputs.size(), output_count_prefix, output_count);
+    transaction.setOutputCountPrefix(output_count_prefix);
+    transaction.setOutputCount(output_count);
+
+    transaction.setOutput(outputs);
+    transaction.setLocktime("00000000");
+
+    return transaction;
+}
+
+
 Address::Address() {
     CryptoPP::AutoSeededRandomPool prng;
     
     this->private_key.Initialize(prng, CryptoPP::ASN1::secp160k1());
     this->private_key.MakePublicKey(this->public_key);
+}
+void Address::setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey& private_key) {
+    this->private_key = private_key;
+}
+void Address::setPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key) {
+    this->public_key = public_key;
+}
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey Address::getPublicKey() {
+    return this->public_key;
+}
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey Address::getPrivateKey() {
+    return this->private_key;
 }
