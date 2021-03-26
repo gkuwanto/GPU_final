@@ -1,5 +1,5 @@
 # GPU powered Blockchain node
-This project aims to create a software which acts as a Blockchain Full Node and also as a Blockchain Miner. Leveraging GPU's SIMD architecture, we aim to create an efficient way to verify transactions and also verify blocks.
+This project aims to create a software which acts as a Blockchain Full Node and also as a Blockchain Miner. Leveraging GPU's SIMD architecture, we aim to create an efficient way to verify transactions, verify candiate blocks and also search the blockchain data.
 
 ## Background
 Blockchain has been used in many applications, most notably are cryptocurrency and supply chain management. A blockchain consists of data sets which are composed from a chain of blocks, where one block contains multiple transaction<sup>[1]</sup>. When a block is added, it contains a timestamp of when the block is constructed, hash to the previous block, and a nonce that will help in making a valid block. The hash to the previous block guarantees the contiguous chain of blocks in the blockchain. The hash itself depends on the transactions inside the block, so if one transaction changes, the whole hash changes, meaning the blockchain must be chaged.<br>
