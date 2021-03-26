@@ -1,5 +1,5 @@
-#include "utils.hpp"
-#include "classes.hpp"
+#include "util/utils.hpp"
+#include "util/classes.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>

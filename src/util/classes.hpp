@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <crypto++/eccrypto.h>
 
 class Input {
     private:
@@ -93,6 +94,20 @@ class Transaction {
         std::string getOutputCount();
         std::vector<Output> getOutput();
         std::string getLocktime();
+};
+
+class Address {
+    private:
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey private_key;
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey public_key;
+    
+    public:
+        Address();
+
+        void setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey private_key);
+        void getPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey public_key);
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey getPrivateKey();
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey getPublicKey();
 };
 
 #endif
