@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <tuple>
 #include <crypto++/eccrypto.h>
 
 class Input {
@@ -19,6 +20,7 @@ class Input {
         Input();
         Input(const Input&);
         std::string serialize();
+        std::string str();
 
         void setTxID(std::string);
         void setVOUT(std::string);
@@ -47,6 +49,7 @@ class Output {
         Output();
         Output(const Output&);
         std::string serialize();
+        std::string str();
 
         void setValue(std::string);
         void setScriptPubKeyPrefix(std::string);
@@ -76,8 +79,9 @@ class Transaction {
         Transaction();
         Transaction(const Transaction&);
         std::string serialize();
-        void setTransaction(std::string);
+        std::string str();
 
+        void setTransaction(std::string);
         void setVersion(std::string);
         void setInputCountPrefix(std::string);
         void setInputCount(std::string);
@@ -89,34 +93,40 @@ class Transaction {
         std::string getVersion();
         std::string getInputCountPrefix();
         std::string getInputCount();
-        std::vector<Input> getInput();
+        std::vector<Input>& getInput();
         std::string getOutputCountPrefix();
         std::string getOutputCount();
-        std::vector<Output> getOutput();
+        std::vector<Output>& getOutput();
         std::string getLocktime();
 };
 
-class TransactionFactory {
-    private:
-        unsigned long long int current_block_level;
-    
-    public:
-        TransactionFactory();
-        Transaction generateTransaction(const std::vector<Output>&);
-};
-
-class Address {
+class Account {
     private:
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey private_key;
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey public_key;
+        std::vector<std::tuple<double, std::string, int>> coin_list;
     
     public:
-        Address();
+        Account();
+
+        Transaction payToAccount(std::vector<Account>&);
+        std::string str();
+        std::string str(bool);
 
         void setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey&);
         void setPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&);
-        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey getPrivateKey();
-        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey getPublicKey();
+        void setCoinList(std::vector<std::tuple<double, std::string, int>>&);
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey& getPrivateKey();
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& getPublicKey();
+        std::vector<std::tuple<double, std::string, int>>& getCoinList();
+};
+
+class Coinbase {
+    public:
+        Coinbase();
+
+        Transaction payToAccount(std::vector<Account>&);
+        std::string str();
 };
 
 #endif
