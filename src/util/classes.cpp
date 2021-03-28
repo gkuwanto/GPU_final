@@ -246,7 +246,7 @@ string Output::getSequence() { return this->sequence; }
 Account::Account() {
     CryptoPP::AutoSeededRandomPool prng;
     
-    this->private_key.Initialize(prng, CryptoPP::ASN1::secp160k1());
+    this->private_key.Initialize(prng, CryptoPP::ASN1::secp256k1());
     this->private_key.MakePublicKey(this->public_key);
 }
 void Account::setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey& private_key) {

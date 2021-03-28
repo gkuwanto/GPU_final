@@ -24,5 +24,7 @@ std::string float_to_long_hex(float);
 std::vector<Account> generate_accounts(int);
 void integer_to_hex_string(int, std::string&, std::string&);
 std::string flip_hex_string_endian(std::string);
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string);
+bool verify_signature(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&, std::string, std::string);
 
 #endif

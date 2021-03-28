@@ -5,6 +5,7 @@
 #include <crypto++/sha.h>
 #include <crypto++/hex.h>
 #include <crypto++/cryptlib.h>
+#include <crypto++/oids.h>
 #include <boost/algorithm/hex.hpp>
 
 using namespace std;
@@ -17,6 +18,8 @@ string float_to_long_hex(float);
 vector<Account> generate_accounts(int);
 void integer_to_hex_string(int, string&, string&);
 string flip_hex_string_endian(string);
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string);
+bool verify_signature(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&, std::string, std::string);
 
 void insert_variable_integer(string raw_transaction, string& prefix, string& count, int* offset) {
     prefix = raw_transaction.substr(*offset, 1);
@@ -128,4 +131,36 @@ string flip_hex_string_endian(string value) {
     }
 
     return value;
+}
+
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string public_key) {
+    CryptoPP::HexDecoder decoder;
+    decoder.Put((byte*) &public_key[0], public_key.size());
+    decoder.MessageEnd();
+
+    CryptoPP::ECP::Point elliptic_curve_points;
+    size_t length = decoder.MaxRetrievable();
+
+    elliptic_curve_points.identity = false;
+    elliptic_curve_points.x.Decode(decoder, length/2);
+    elliptic_curve_points.y.Decode(decoder, length/2);
+
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey encoded_public_key;
+    encoded_public_key.Initialize(CryptoPP::ASN1::secp256k1(), elliptic_curve_points);
+    
+    return encoded_public_key;
+}
+
+bool verify_signature(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, string signature, string message) {
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier(public_key);
+
+    bool result = true;
+
+    CryptoPP::StringSource ss(signature + message, true /*pump all*/,
+        new CryptoPP::SignatureVerificationFilter(verifier,
+            new CryptoPP::ArraySink((byte*) &result, sizeof(result))
+        )
+    );
+
+    return result;
 }
