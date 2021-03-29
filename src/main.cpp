@@ -1,12 +1,29 @@
 #include "util/utils.hpp"
 #include "util/classes.hpp"
-#include "module/device_verify.hpp"
+#include "module/device_verify.cuh"
 #include <iostream>
 #include <string>
 #include <map>
 #include <boost/algorithm/hex.hpp>
 
 using namespace std;
+
+cudaEvent_t start;
+cudaEvent_t stop;
+#define START_TIMER()        \
+{                            \
+    cudaEventCreate(&start); \
+    cudaEventCreate(&stop);  \
+    cudaEventRecord(start);  \
+}
+#define STOP_RECORD_TIMER(name)               \
+{                                             \
+    cudaEventRecord(stop);                    \
+    cudaEventSynchronize(stop);               \
+    cudaEventElapsedTime(&name, start, stop); \
+    cudaEventDestroy(start);                  \
+    cudaEventDestroy(stop);                   \
+}
 
 int main(int argc, char** argv) {
     vector<Account> accounts = generate_accounts(NUMBER_OF_ACCOUNTS);
@@ -48,7 +65,12 @@ int main(int argc, char** argv) {
     // cout << endl;
     
     VerifyType type = VerifyType::CPU;
+    float time;
+    START_TIMER();
     device_verify_dispatcher(transactions_map, type);
+    STOP_RECORD_TIMER(time);
+
+    cout << "Time spent to verify using CPU: " << time << "ms" << endl;
     
     return 0;
 }

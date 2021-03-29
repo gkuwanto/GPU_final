@@ -1,9 +1,9 @@
-#include <sstream>
 #include <random>
+#include <sstream>
 #include <boost/algorithm/hex.hpp>
-#include <crypto++/osrng.h>
 #include <crypto++/asn.h>
 #include <crypto++/oids.h>
+#include <crypto++/osrng.h>
 #include "classes.hpp"
 #include "utils.hpp"
 
@@ -15,14 +15,14 @@ Transaction::Transaction(const Transaction& transaction) {
     this->input_count_prefix = transaction.version;
     this->input_count = transaction.input_count;
     
-    for (int i = 0; i < transaction.input.size(); i++) {
+    for (unsigned int i = 0; i < transaction.input.size(); i++) {
         Input temp = transaction.input[i];
         this->input.push_back(temp);
     }
 
     this->output_count_prefix = transaction.output_count_prefix;
     this->output_count = transaction.output_count;
-    for (int i = 0; i < transaction.output.size(); i++) {
+    for (unsigned int i = 0; i < transaction.output.size(); i++) {
         Output temp = transaction.output[i];
         this->output.push_back(temp);
     }
@@ -37,7 +37,7 @@ void Transaction::setTransaction(string raw_transaction) {
     offset += TRANSACTION_VERSION_SIZE;
     
     // Store the input count
-    insert_variable_integer(raw_transaction, this->input_count_prefix, this->input_count, &offset);
+    parse_variable_integer(raw_transaction, this->input_count_prefix, this->input_count, &offset);
 
     // Iterate inputs
     long long int input_count = hex_string_to_long(this->input_count);
@@ -49,7 +49,7 @@ void Transaction::setTransaction(string raw_transaction) {
         input.setVOUT(raw_transaction.substr(offset, INPUT_VOUT_SIZE));
         offset += INPUT_VOUT_SIZE;
 
-        insert_variable_integer(raw_transaction, input.script_sig_size_prefix, input.script_sig_size, &offset);
+        parse_variable_integer(raw_transaction, input.script_sig_size_prefix, input.script_sig_size, &offset);
         long long int script_sig_size = hex_string_to_long(input.script_sig_size);
         input.setScriptSig(raw_transaction.substr(offset, script_sig_size));
         offset += script_sig_size;
@@ -61,7 +61,7 @@ void Transaction::setTransaction(string raw_transaction) {
     }
 
     // Store the output count
-    insert_variable_integer(raw_transaction, this->output_count_prefix, this->output_count, &offset);
+    parse_variable_integer(raw_transaction, this->output_count_prefix, this->output_count, &offset);
 
     // Iterate outputs
     long long int output_count = hex_string_to_long(this->output_count);
@@ -72,7 +72,7 @@ void Transaction::setTransaction(string raw_transaction) {
         output.setValue(raw_transaction.substr(offset, OUTPUT_VALUE_SIZE));
         offset += OUTPUT_VALUE_SIZE;
 
-        insert_variable_integer(raw_transaction, output.script_pub_key_prefix, output.script_pub_key_size, &offset);
+        parse_variable_integer(raw_transaction, output.script_pub_key_prefix, output.script_pub_key_size, &offset);
         long long int script_pub_key_size = hex_string_to_long(output.script_pub_key_size);
         output.setScriptPubKey(raw_transaction.substr(offset, script_pub_key_size));
         offset += script_pub_key_size;
@@ -114,8 +114,8 @@ string Transaction::str() {
     container += "Version       " + version + "\n";
     container += "Input Count   " + input_count + "\n";
     container += "Inputs\n";
-    for (int i = 0; i < input.size(); i++) {
-        container += "      " + to_string(i) + ".  Transaction ID  " + input[i].getTxID() + "\n";
+    for (unsigned int i = 0; i < input.size(); i++) {
+        container += "      " + to_string(i + 1) + ".  Transaction ID  " + input[i].getTxID() + "\n";
         container += "          V_OUT           " + input[i].getVOUT() + "\n";
         container += "          ScriptSig Size  " + input[i].getScriptSigSize() + "\n";
         container += "          ScriptSig       " + input[i].getScriptSig() + "\n";
@@ -123,8 +123,8 @@ string Transaction::str() {
     }
     container += "Output Count  " + output_count + "\n";
     container += "Outputs\n";
-    for (int i = 0; i < output.size(); i++) {
-        container += "       " + to_string(i) + ".  Value               " + output[i].getValue() + "\n";
+    for (unsigned int i = 0; i < output.size(); i++) {
+        container += "       " + to_string(i + 1) + ".  Value               " + output[i].getValue() + "\n";
         container += "          ScriptPubKey Size   " + output[i].getScriptPubKeySize() + "\n";
         container += "          ScriptPubKey        " + output[i].getScriptPubKey() + "\n";
         container += "          Sequence            " + output[i].getSequence() + "\n";
@@ -288,9 +288,9 @@ string Account::str() {
     }
     container += "Public Key    " + x + y + "\n";
     container += "Coins\n";
-    for (int i = 0; i < coin_list.size(); i++) {
+    for (unsigned int i = 0; i < coin_list.size(); i++) {
         tuple<double, string, int> tuple = coin_list[i];
-        container += "      " + to_string(i) + ".  Amount          " + to_string(get<0>(tuple)) + "\n";
+        container += "      " + to_string(i + 1) + ".  Amount          " + to_string(get<0>(tuple)) + "\n";
         container += "          Transaction ID  " + get<1>(tuple) + "\n";
         container += "          V_OUT           " + to_string(get<2>(tuple)) + "\n";
     }
@@ -359,7 +359,7 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
         input.setScriptSig(boost::algorithm::hex(signature));
         string script_sig_size_prefix;
         string script_sig_size;
-        integer_to_hex_string(signature.length(), script_sig_size_prefix, script_sig_size);
+        variable_int_to_hex_string(signature.length(), script_sig_size_prefix, script_sig_size);
         input.setScriptSigSizePrefix(script_sig_size_prefix);
         input.setScriptSigSize(script_sig_size);
         input.setSequence("FFFFFFFF");
@@ -369,7 +369,7 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
     }
     string input_count_prefix;
     string input_count;
-    integer_to_hex_string(inputs.size(), input_count_prefix, input_count);
+    variable_int_to_hex_string(inputs.size(), input_count_prefix, input_count);
     transaction.setInput(inputs);
     transaction.setInputCountPrefix(input_count_prefix);
     transaction.setInputCount(input_count);
@@ -418,7 +418,7 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
 
         string script_pub_key_prefix;
         string script_pub_key_size;
-        integer_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
+        variable_int_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
         output.setScriptPubKeyPrefix(script_pub_key_prefix);
         output.setScriptPubKeySize(script_pub_key_size);
 
@@ -428,7 +428,7 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
 
     string output_count_prefix;
     string output_count;
-    integer_to_hex_string(outputs.size(), output_count_prefix, output_count);
+    variable_int_to_hex_string(outputs.size(), output_count_prefix, output_count);
     transaction.setOutputCountPrefix(output_count_prefix);
     transaction.setOutputCount(output_count);
     transaction.setOutput(outputs);
@@ -437,7 +437,7 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
 
     // Set TX ID to outputs
     string tx_id = hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())));
-    for (int i = 0; i < unverified_coins_list.size(); i++) {
+    for (unsigned int i = 0; i < unverified_coins_list.size(); i++) {
         tuple<Account*, double, int> tuple = unverified_coins_list[i];
         
         Account* account = get<0>(tuple);
@@ -525,7 +525,7 @@ Transaction Coinbase::payToAccount(vector<Account>& accounts) {
 
         string script_pub_key_prefix;
         string script_pub_key_size;
-        integer_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
+        variable_int_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
         output.setScriptPubKeyPrefix(script_pub_key_prefix);
         output.setScriptPubKeySize(script_pub_key_size);
 
@@ -535,7 +535,7 @@ Transaction Coinbase::payToAccount(vector<Account>& accounts) {
 
     string output_count_prefix;
     string output_count;
-    integer_to_hex_string(outputs.size(), output_count_prefix, output_count);
+    variable_int_to_hex_string(outputs.size(), output_count_prefix, output_count);
     transaction.setOutputCountPrefix(output_count_prefix);
     transaction.setOutputCount(output_count);
     transaction.setOutput(outputs);
@@ -544,7 +544,7 @@ Transaction Coinbase::payToAccount(vector<Account>& accounts) {
 
     // Set TX ID to outputs
     string tx_id = hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())));
-    for (int i = 0; i < unverified_coins_list.size(); i++) {
+    for (unsigned int i = 0; i < unverified_coins_list.size(); i++) {
         tuple<Account*, double, int> tuple = unverified_coins_list[i];
         
         Account* account = get<0>(tuple);

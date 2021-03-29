@@ -1,54 +1,61 @@
-#include "utils.hpp"
+#include <iomanip>
 #include <random>
 #include <sstream>
-#include <iomanip>
-#include <crypto++/sha.h>
-#include <crypto++/hex.h>
-#include <crypto++/cryptlib.h>
-#include <crypto++/oids.h>
 #include <boost/algorithm/hex.hpp>
+#include <crypto++/cryptlib.h>
+#include <crypto++/hex.h>
+#include <crypto++/oids.h>
+#include <crypto++/sha.h>
+#include "utils.hpp"
 
 using namespace std;
 
-
-void insert_variable_integer(string raw_transaction, string& prefix, string& count, int* offset);
-long long int hex_string_to_long(string hex_string);
-string hash_sha256(const string& string);
-string float_to_long_hex(float);
-vector<Account> generate_accounts(int);
-void integer_to_hex_string(int, string&, string&);
-string flip_hex_string_endian(string);
-CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string);
-bool verify_signature(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&, std::string, std::string);
-
-void insert_variable_integer(string raw_transaction, string& prefix, string& count, int* offset) {
+/*  Parses VARINT element of a transaction.
+ *
+ *  We need the address of prefix and size because we want the change to persist outside of the function
+ *  Same as offset, we pass the address to make the change the persistence. In short, we want to pass by reference, not value.
+ */
+void parse_variable_integer(string raw_transaction, string& prefix, string& size, int* offset) {
     prefix = raw_transaction.substr(*offset, 1);
     (*offset)++;
 
     if (prefix == "FD") {
-        count = raw_transaction.substr(*offset, 2);
+        size = raw_transaction.substr(*offset, 2);
         prefix = "FD";
         (*offset) += 2;
     } else if (prefix == "FE") {
-        count = raw_transaction.substr(*offset, 4);
+        size = raw_transaction.substr(*offset, 4);
         prefix = "FE";
         (*offset) += 4;
     } else if (prefix == "FF") {
-        count = raw_transaction.substr(*offset, 8);
+        size = raw_transaction.substr(*offset, 8);
         prefix = "FF";
         (*offset) += 8;
     } else {
-        count = prefix;
+        size = prefix;
         prefix = "";
     }
 }
 
+
+/*  Converts a float into transaction-compliant 8 bytes hexadecimal value
+ *
+ *  Per Bitcoin standard, the value of float must be multiplied by 10^8 before casted into 8 bytes hexadecimal
+ */
+string float_to_long_hex(float value) {
+    stringstream stream;
+    stream << setfill('0') << setw(sizeof(unsigned long long int)*2) << hex << (long long int) value * 100000000;
+    
+    return stream.str();
+}
+
+/*  Converts hexadecimal string to 8 bytes long integer  */ 
 long long int hex_string_to_long(string hex_string) {
     const char* temp_hex_string = hex_string.c_str();
     stringstream ss;
     ss << hex;
 
-    for (int i = 0; i < hex_string.length(); i++) {
+    for (unsigned int i = 0; i < hex_string.length(); i++) {
         ss << (unsigned int) temp_hex_string[i];
     }
 
@@ -57,37 +64,10 @@ long long int hex_string_to_long(string hex_string) {
     return result;
 }
 
-string hash_sha256(const string& payload) {
-    byte digest[CryptoPP::SHA256::DIGESTSIZE];
-    CryptoPP::SHA256().CalculateDigest(digest, (byte *) payload.c_str(), payload.size());
-
-    string hashed_payload;
-    CryptoPP::HexEncoder encoder;
-    encoder.Attach(new CryptoPP::StringSink(hashed_payload));
-    encoder.Put(digest, sizeof(digest));
-    encoder.MessageEnd();
-
-    return hashed_payload;
-}
-
-string float_to_long_hex(float value) {
-    stringstream stream;
-    stream << setfill('0') << setw(sizeof(unsigned long long int)*2) << hex << (long long int) value * 100000000;
-    
-    return stream.str();
-}
-
-vector<Account> generate_accounts(int n) {
-    vector<Account> accounts;
-
-    for (int i = 0; i < n; i++) {
-        accounts.push_back(Account());
-    }
-
-    return accounts;
-}
-
-void integer_to_hex_string(int value, string& prefix, string& size) {
+/*  Converts integer to VARINT element of transaction
+ *  As before, we want changes to prefix and size to persist, so we pass them by reference
+ */
+void variable_int_to_hex_string(int value, string& prefix, string& size) {
     stringstream ss;
     ss << hex << value;
     string hex_string = ss.str();
@@ -109,6 +89,7 @@ void integer_to_hex_string(int value, string& prefix, string& size) {
     size = ss2.str();
 }
 
+/*  Flips hex string endianess  */
 string flip_hex_string_endian(string value) {
     int bottom_pivot = 1;
     int upper_pivot = value.length() - 1;
@@ -133,7 +114,35 @@ string flip_hex_string_endian(string value) {
     return value;
 }
 
-CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string public_key) {
+
+/*  Generate Bitcoin accounts   */
+vector<Account> generate_accounts(int n) {
+    vector<Account> accounts;
+
+    for (int i = 0; i < n; i++) {
+        accounts.push_back(Account());
+    }
+
+    return accounts;
+}
+
+
+/*  Hashes payload with SHA256 hash algorithm   */
+string hash_sha256(const string& payload) {
+    byte digest[CryptoPP::SHA256::DIGESTSIZE];
+    CryptoPP::SHA256().CalculateDigest(digest, (byte *) payload.c_str(), payload.size());
+
+    string hashed_payload;
+    CryptoPP::HexEncoder encoder;
+    encoder.Attach(new CryptoPP::StringSink(hashed_payload));
+    encoder.Put(digest, sizeof(digest));
+    encoder.MessageEnd();
+
+    return hashed_payload;
+}
+
+/*  Generates a public key object from public key string  */
+CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(string public_key) {
     CryptoPP::HexDecoder decoder;
     decoder.Put((byte*) &public_key[0], public_key.size());
     decoder.MessageEnd();
@@ -151,7 +160,8 @@ CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_
     return encoded_public_key;
 }
 
-bool verify_signature(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, string signature, string message) {
+/*  Verifies a message with the provided signature and public key  */
+bool verify_message(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, string signature, string message) {
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier(public_key);
 
     bool result = true;

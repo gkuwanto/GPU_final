@@ -2,8 +2,8 @@
 #define __CLASSES_HPP__
 
 #include <string>
-#include <vector>
 #include <tuple>
+#include <vector>
 #include <crypto++/eccrypto.h>
 
 class Input {
@@ -19,8 +19,8 @@ class Input {
 
         Input();
         Input(const Input&);
-        std::string serialize();
-        std::string str();
+        std::string serialize();    /* Serializes input into hex string */
+        std::string str();          /* Converts input into human-readable string */
 
         void setTxID(std::string);
         void setVOUT(std::string);
@@ -48,8 +48,8 @@ class Output {
         
         Output();
         Output(const Output&);
-        std::string serialize();
-        std::string str();
+        std::string serialize();    /* Serializes output into hex string */
+        std::string str();          /* Converts output into human-readable string */
 
         void setValue(std::string);
         void setScriptPubKeyPrefix(std::string);
@@ -78,8 +78,8 @@ class Transaction {
 
         Transaction();
         Transaction(const Transaction&);
-        std::string serialize();
-        std::string str();
+        std::string serialize();    /* Serializes transaction into hex string */
+        std::string str();          /* Converts transaction, including all of the inputs and outputs into human-readable string */
 
         void setTransaction(std::string);
         void setVersion(std::string);
@@ -109,9 +109,9 @@ class Account {
     public:
         Account();
 
-        Transaction payToAccount(std::vector<Account>&);
-        std::string str();
-        std::string str(bool);
+        Transaction payToAccount(std::vector<Account>&);    /* Pays into an account, generating transaction */
+        std::string str();      /* Convert account data into human readable string without the private key */
+        std::string str(bool);  /* Convert account data into human readable string. If bool set to true, prints private key as well */
 
         void setPrivateKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey&);
         void setPublicKey(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey&);
@@ -125,8 +125,8 @@ class Coinbase {
     public:
         Coinbase();
 
-        Transaction payToAccount(std::vector<Account>&);
-        std::string str();
+        Transaction payToAccount(std::vector<Account>&);    /* Generates COINBASE to accounts, returning transaction */
+        std::string str();  /* Converts coinbase data into human readable string */
 };
 
 #endif
