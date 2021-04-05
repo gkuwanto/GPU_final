@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     ht1.readHashTable(ifs);
     item = ht1["abc"];
     cout << item->Value();
-    return 0
+    return 0;
     vector<Account> accounts = generate_accounts(NUMBER_OF_ACCOUNTS);
     Coinbase coinbase;
 
