@@ -51,12 +51,12 @@ bool Block::verify_nonce(){
 }
 
 Blockchain::Blockchain() {
-    this->current_difficulty = 2;
+    this->current_difficulty = 3;
 }
 uint32_t Blockchain::getDifficulty() {
     return this->current_difficulty;
 }
-void Blockchain::AddBlock(Block new_block) {
+void Blockchain::addBlock(Block new_block) {
     try {
         if (!new_block.verify_nonce()) {
             throw "Block below difficulty level";

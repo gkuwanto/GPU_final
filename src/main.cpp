@@ -93,5 +93,9 @@ int main(int argc, char** argv) {
     STOP_RECORD_TIMER(mine_time_cpu);
     cout << "Time spent to mine using CPU: " << time << "ms" << " with nonce:" << nonce << endl;
 
+    Block block(candidate_block, nonce);
+    blockchain.AddBlock(block)
+
+
     return 0;
 }

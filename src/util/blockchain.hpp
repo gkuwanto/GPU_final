@@ -37,7 +37,7 @@ class Blockchain {
     public:
         Blockchain();
         uint32_t getDifficulty();
-        void AddBlock(Block new_block);
+        void addBlock(Block new_block);
 };
 
 #endif
