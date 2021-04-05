@@ -32,12 +32,14 @@ cudaEvent_t stop;
 int main(int argc, char** argv) {
     Hashtable ht;
     HashtableItem *item;
+    cout << "aaa";
     ofstream ofs("test");
     ht.Add("abc", "def");
     ht.Add("ghi", "jkl");
     ht.Add("mno", "pqr");
     ht.saveHashTable(ofs);
     Hashtable ht1;
+    cout << "bbb";
     ifstream ifs("test");
     ht1.readHashTable(ifs);
     item = ht1["abc"];
