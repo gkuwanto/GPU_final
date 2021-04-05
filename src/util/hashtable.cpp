@@ -135,6 +135,7 @@ void Hashtable::saveHashTable(ofstream& os) {
     while(item) {
         os << item->Key() << '\n';
         os << item->Value() << '\n';
+        item = this->GetNext();
     }
 }
 
