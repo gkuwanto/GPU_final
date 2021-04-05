@@ -10,7 +10,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
         stringstream ss;
         ss << payload << hex << nonce;
         string hash = hash_sha256(ss.str());
-        if hash.substr(0, difficulty) == string(difficulty, '0') {
+        if (hash.substr(0, difficulty) == string(difficulty, '0')) {
             return nonce;
         }
     }
