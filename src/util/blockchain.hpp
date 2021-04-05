@@ -1,6 +1,7 @@
 #ifndef __BLOCKCHAIN_HPP__
 #define __BLOCKCHAIN_HPP__
 
+#define DEFAULT_DIFFICULTY 3
 #include <string>
 #include <vector>
 /*

@@ -53,7 +53,7 @@ bool Block::verify_nonce(){
 }
 
 Blockchain::Blockchain() {
-    this->current_difficulty = 3;
+    this->current_difficulty = DEFAULT_DIFFICULTY;
 }
 uint32_t Blockchain::getDifficulty() {
     return this->current_difficulty;
