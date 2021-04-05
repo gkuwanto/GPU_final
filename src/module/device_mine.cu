@@ -14,6 +14,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
             return nonce;
         }
     }
+    return -1
 }
 
 uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type) {
@@ -22,4 +23,5 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             return CPU_mine(payload, difficulty);
         }
     }
+    return -1
 }

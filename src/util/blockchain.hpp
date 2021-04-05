@@ -14,10 +14,10 @@ class CandidateBlock {
     public:
         CandidateBlock(uint32_t difficulty);
         void setPreviousBlock(std::string prev_hash);
-        void setTransactionList(std::vector<string>& tx_list);
+        void setTransactionList(std::vector<std::string>& tx_list);
         uint32_t getDifficulty();
         std::string getHashableString();
-}
+};
 
 class Block {
     private:
@@ -26,10 +26,8 @@ class Block {
     public:
         std::string calculateHash();
         Block(CandidateBlock, uint32_t);
-        bool verify_nonce();
-
-        
-}
+        bool verify_nonce();   
+};
 
 class Blockchain {
     private:
@@ -39,7 +37,6 @@ class Blockchain {
         Blockchain();
         uint32_t getDifficulty();
         void AddBlock(Block new_block);
-        
-}
+};
 
 #endif
