@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <chrono>
 #include "blockchain.hpp"
 #include "utils.hpp"
 
@@ -10,9 +11,10 @@
 using namespace std;
 
 CandidateBlock::CandidateBlock() {
-
+    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 CandidateBlock::CandidateBlock(uint32_t difficulty) {
+    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     this->difficulty = difficulty;
 }
 void CandidateBlock::setPreviousBlock(string prev_hash) {
@@ -27,7 +29,7 @@ uint32_t CandidateBlock::getDifficulty(){
 
 string CandidateBlock::getHashableString() {
     stringstream ss;
-    ss << this->previous_block;
+    ss << this->timestamp << this->previous_block;
     for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
         ss << *it;
     }
