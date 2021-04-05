@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     uint32_t diff = blockchain.getDifficulty();
     CandidateBlock candidate_block(diff);
     candidate_block.setTransactionList(tx_list);
-    candidate_block.setPreviousBlock("00000000000")
+    candidate_block.setPreviousBlock("00000000000");
     string payload = candidate_block.getHashableString();
 
     MineType m_type = MineType::CPU;

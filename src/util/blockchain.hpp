@@ -12,6 +12,7 @@ class CandidateBlock {
         std::vector<std::string> transaction_list; /* List of transactions hash to be added */
         uint32_t difficulty;
     public:
+        CandidateBlock();
         CandidateBlock(uint32_t difficulty);
         void setPreviousBlock(std::string prev_hash);
         void setTransactionList(std::vector<std::string>& tx_list);

@@ -1,5 +1,5 @@
-#ifndef __DEVICE_VERIFY_CUH__
-#define __DEVICE_VERIFY_CUH__
+#ifndef __DEVICE_MINE_CUH__
+#define __DEVICE_MINE_CUH__
 
 #include <string>
 enum MineType { CPU, NAIVE };

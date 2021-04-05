@@ -1,6 +1,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 #include "blockchain.hpp"
 #include "utils.hpp"
 
@@ -8,6 +9,9 @@
 
 using namespace std;
 
+CandidateBlock::CandidateBlock() {
+
+}
 CandidateBlock::CandidateBlock(uint32_t difficulty) {
     this->difficulty = difficulty;
 }
@@ -41,7 +45,7 @@ string Block::calculateHash() {
 }
 
 bool Block::verify_nonce(){
-    string hash = this._calculateHash();
+    string hash = this.calculateHash();
     uint32_t difficulty = this->candidate_block.getDifficulty();
     return hash.substr(0, difficulty) == string(difficulty, '0');
 }
@@ -57,10 +61,9 @@ void Blockchain::AddBlock(Block new_block) {
         if (!new_block.verify_nonce()) {
             throw "Block below difficulty level";
         }
-        this.block_chain.push_back(new_block);
+        this->block_chain.push_back(new_block);
         
     } catch(string e) {
         cout << e << endl;
-        continue;
     }
 }
