@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     START_TIMER();
     int nonce = device_mine_dispatcher(payload, diff, m_type);
     STOP_RECORD_TIMER(mine_time_cpu);
-    cout << "Time spent to mine using CPU: " << time << "ms" << " with nonce:" << nonce << endl;
+    cout << "Time spent to mine using CPU: " << mine_time_cpu << "ms" << " with nonce:" << nonce << endl;
 
     Block block(candidate_block, nonce);
     blockchain.addBlock(block);
