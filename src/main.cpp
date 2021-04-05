@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     vector<string> tx_list;
     for (map<string, Transaction>::iterator it = transactions_map.begin(); it != transactions_map.end(); it++) {
         Transaction& current_transaction = it->second;
-        tx_list.push_back(current_transaction.getHashableString());
+        tx_list.push_back(current_transaction.serialize());
     }
     Blockchain blockchain;
     uint32_t diff = blockchain.getDifficulty();
