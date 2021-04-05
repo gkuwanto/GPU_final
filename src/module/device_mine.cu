@@ -24,4 +24,4 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
         }
     }
     return -1;
-}`
+}
