@@ -28,10 +28,16 @@ uint32_t CandidateBlock::getDifficulty(){
 }
 
 string CandidateBlock::getHashableString() {
+    /* 
+        Outputs:
+        ###13 char for timestamp###
+        ###64 char for previous hash###
+        ### n char for transaction splitted with -###
+    */
     stringstream ss;
     ss << this->timestamp << this->previous_block;
     for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
-        ss << *it;
+        ss << *it<<'-';
     }
     return ss.str();
 }

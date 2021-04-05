@@ -1,10 +1,12 @@
 #include "util/utils.hpp"
 #include "util/classes.hpp"
 #include "util/blockchain.hpp"
+#include "util/hashtable.hpp"
 #include "module/device_verify.cuh"
 #include "module/device_mine.cuh"
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <map>
 #include <boost/algorithm/hex.hpp>
 
@@ -28,6 +30,19 @@ cudaEvent_t stop;
 }
 
 int main(int argc, char** argv) {
+    Hashtable ht;
+    HashtableItem *item;
+    ofstream ofs('test');
+    ht.Add("abc", "def");
+    ht.Add("ghi", "jkl");
+    ht.Add("mno", "pqr");
+    ht.saveHashTable(ofs);
+    Hashtable ht1;
+    ifstream ifs('test');
+    ht1.readHashTable(ifs);
+    item = ht1["abc"];
+    cout << item->Value();
+    return 0
     vector<Account> accounts = generate_accounts(NUMBER_OF_ACCOUNTS);
     Coinbase coinbase;
 
@@ -83,7 +98,7 @@ int main(int argc, char** argv) {
     uint32_t diff = blockchain.getDifficulty();
     CandidateBlock candidate_block(diff);
     candidate_block.setTransactionList(tx_list);
-    candidate_block.setPreviousBlock("00000000000");
+    candidate_block.setPreviousBlock(hash_sha256("0"));
     string payload = candidate_block.getHashableString();
 
     MineType m_type = MineType::MINE_CPU;
