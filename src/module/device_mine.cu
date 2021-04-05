@@ -19,7 +19,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 
 uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type) {
     switch (reduction_type) {
-        case MineType::CPU: {
+        case MineType::MINE_CPU: {
             return CPU_mine(payload, difficulty);
         }
     }
