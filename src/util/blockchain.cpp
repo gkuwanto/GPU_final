@@ -11,10 +11,10 @@
 using namespace std;
 
 CandidateBlock::CandidateBlock() {
-    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    this->timestamp= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 CandidateBlock::CandidateBlock(uint32_t difficulty) {
-    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    this->timestamp= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     this->difficulty = difficulty;
 }
 void CandidateBlock::setPreviousBlock(string prev_hash) {
@@ -53,7 +53,7 @@ bool Block::verify_nonce(){
 }
 
 Blockchain::Blockchain() {
-    this->current_difficulty = 3;
+    this->current_difficulty = DEFAULT_DIFFICULTY;
 }
 uint32_t Blockchain::getDifficulty() {
     return this->current_difficulty;

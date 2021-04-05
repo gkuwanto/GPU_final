@@ -1,6 +1,7 @@
 #ifndef __BLOCKCHAIN_HPP__
 #define __BLOCKCHAIN_HPP__
 
+#define DEFAULT_DIFFICULTY 3
 #include <string>
 #include <vector>
 /*
@@ -8,7 +9,7 @@
 */
 class CandidateBlock {
     private:
-        uint64_t timestamp
+        uint64_t timestamp;
         std::string previous_block; /* Hash of previous block */
         std::vector<std::string> transaction_list; /* List of transactions hash to be added */
         uint32_t difficulty;
