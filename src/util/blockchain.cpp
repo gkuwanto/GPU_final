@@ -11,10 +11,10 @@
 using namespace std;
 
 CandidateBlock::CandidateBlock() {
-    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    this->timestamp= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 CandidateBlock::CandidateBlock(uint32_t difficulty) {
-    this->timestamp= duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    this->timestamp= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     this->difficulty = difficulty;
 }
 void CandidateBlock::setPreviousBlock(string prev_hash) {
