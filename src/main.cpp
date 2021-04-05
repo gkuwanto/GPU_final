@@ -1,6 +1,8 @@
 #include "util/utils.hpp"
 #include "util/classes.hpp"
+#include "util/blockchain.hpp"
 #include "module/device_verify.cuh"
+#include "module/device_mine.cuh"
 #include <iostream>
 #include <string>
 #include <map>
@@ -64,13 +66,36 @@ int main(int argc, char** argv) {
     // }
     // cout << endl;
     
-    VerifyType type = VerifyType::CPU;
+    VerifyType v_type = VerifyType::CPU;
     float time;
     START_TIMER();
-    device_verify_dispatcher(transactions_map, type);
+    device_verify_dispatcher(transactions_map, v_type);
     STOP_RECORD_TIMER(time);
 
     cout << "Time spent to verify using CPU: " << time << "ms" << endl;
-    
+
+    vector<string> tx_list;
+    for (map<string, Transaction>::iterator it = transactions_map.begin(); it != transactions_map.end(); it++) {
+        Transaction& current_transaction = it->second;
+        tx_list.push_back(current_transaction.serialize());
+    }
+    Blockchain blockchain;
+    uint32_t diff = blockchain.getDifficulty();
+    CandidateBlock candidate_block(diff);
+    candidate_block.setTransactionList(tx_list);
+    candidate_block.setPreviousBlock("00000000000");
+    string payload = candidate_block.getHashableString();
+
+    MineType m_type = MineType::MINE_CPU;
+    float mine_time_cpu;
+    START_TIMER();
+    int nonce = device_mine_dispatcher(payload, diff, m_type);
+    STOP_RECORD_TIMER(mine_time_cpu);
+    cout << "Time spent to mine using CPU: " << mine_time_cpu << "ms" << " with nonce:" << nonce << endl;
+
+    Block block(candidate_block, nonce);
+    blockchain.addBlock(block);
+
+
     return 0;
 }
