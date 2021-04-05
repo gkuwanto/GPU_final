@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     cout << "Time spent to mine using CPU: " << time << "ms" << " with nonce:" << nonce << endl;
 
     Block block(candidate_block, nonce);
-    blockchain.AddBlock(block)
+    blockchain.addBlock(block)
 
 
     return 0;
