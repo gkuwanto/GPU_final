@@ -89,9 +89,9 @@ int main(int argc, char** argv) {
     MineType m_type = MineType::MINE_CPU;
     float mine_time_cpu;
     START_TIMER();
-    device_mine_dispatcher(payload, diff, m_type);
+    int nonce = device_mine_dispatcher(payload, diff, m_type);
     STOP_RECORD_TIMER(mine_time_cpu);
-    cout << "Time spent to mine using CPU: " << time << "ms" << endl;
+    cout << "Time spent to mine using CPU: " << time << "ms" << " with nonce:" << nonce << endl;
 
     return 0;
 }
