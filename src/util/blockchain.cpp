@@ -45,7 +45,7 @@ string Block::calculateHash() {
 }
 
 bool Block::verify_nonce(){
-    string hash = this.calculateHash();
+    string hash = this->calculateHash();
     uint32_t difficulty = this->candidate_block.getDifficulty();
     return hash.substr(0, difficulty) == string(difficulty, '0');
 }

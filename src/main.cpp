@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     candidate_block.setPreviousBlock("00000000000");
     string payload = candidate_block.getHashableString();
 
-    MineType m_type = MineType::CPU;
+    MineType m_type = MineType::MINE_CPU;
     float mine_time_cpu;
     START_TIMER();
     device_mine_dispatcher(payload, diff, m_type);
