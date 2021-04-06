@@ -1,12 +1,101 @@
-#include "utils.hpp"
+#include "util/utils.hpp"
+#include "util/classes.hpp"
+#include "util/blockchain.hpp"
+#include "module/device_verify.cuh"
+#include "module/device_mine.cuh"
 #include <iostream>
+#include <string>
+#include <map>
 #include <boost/algorithm/hex.hpp>
 
 using namespace std;
 
-int main(int argc, char** argv) {
-    string transaction_hex = boost::algorithm::unhex(string("01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4503ec59062f48616f4254432f53756e204368756e2059753a205a6875616e67205975616e2c2077696c6c20796f75206d61727279206d653f2f06fcc9cacc19c5f278560300ffffffff01529c6d98000000001976a914bfd3ebb5485b49a6cf1657824623ead693b5a45888ac00000000"));
+cudaEvent_t start;
+cudaEvent_t stop;
+#define START_TIMER()        \
+{                            \
+    cudaEventCreate(&start); \
+    cudaEventCreate(&stop);  \
+    cudaEventRecord(start);  \
+}
+#define STOP_RECORD_TIMER(name)               \
+{                                             \
+    cudaEventRecord(stop);                    \
+    cudaEventSynchronize(stop);               \
+    cudaEventElapsedTime(&name, start, stop); \
+    cudaEventDestroy(start);                  \
+    cudaEventDestroy(stop);                   \
+}
 
-    Transaction transaction;
-    parse_transaction(transaction_hex, &transaction);
+int main(int argc, char** argv) {
+    vector<Account> accounts = generate_accounts(NUMBER_OF_ACCOUNTS);
+    Coinbase coinbase;
+
+    map<string, Transaction> transactions_map;
+    int i = NUMBER_OF_TRANSACTIONS;
+
+    Transaction transaction = coinbase.payToAccount(accounts);
+    pair<string, Transaction> pair(flip_hex_string_endian(hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())))), transaction);
+    transactions_map.insert(pair);
+
+    i--;
+    int round_robin_index = 0;
+    while (i > 0) {
+        if (accounts[round_robin_index].getCoinList().size() > 0) {
+            transaction = accounts[round_robin_index].payToAccount(accounts);
+            
+            pair = std::pair<string, Transaction>(flip_hex_string_endian(hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())))), transaction);
+
+            transactions_map.insert(pair);
+            i--;
+        }
+
+        round_robin_index = (round_robin_index + 1) % NUMBER_OF_ACCOUNTS;
+        if (i % COINBASE_DELAY == 0) {
+            transaction = coinbase.payToAccount(accounts);
+            pair = std::pair<string, Transaction>(flip_hex_string_endian(hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())))), transaction);
+
+            transactions_map.insert(pair);
+            i--;
+        }
+    }
+
+    // cout << "Account List" << endl << "------------------------------" << endl;
+    // for (int i = 0; i < accounts.size(); i++) {
+    //     cout << accounts[i].str(true) << endl;;
+    // }
+    // cout << endl;
+    
+    VerifyType v_type = VerifyType::CPU;
+    float time;
+    START_TIMER();
+    device_verify_dispatcher(transactions_map, v_type);
+    STOP_RECORD_TIMER(time);
+
+    cout << "Time spent to verify using CPU: " << time << "ms" << endl;
+
+    vector<string> tx_list;
+    for (map<string, Transaction>::iterator it = transactions_map.begin(); it != transactions_map.end(); it++) {
+        Transaction& current_transaction = it->second;
+        tx_list.push_back(current_transaction.serialize());
+    }
+    Blockchain blockchain;
+    uint32_t diff = blockchain.getDifficulty();
+    CandidateBlock candidate_block(diff);
+    candidate_block.setTransactionList(tx_list);
+    candidate_block.setPreviousBlock("00000000000");
+    string payload = candidate_block.getHashableString();
+
+    MineType m_type = MineType::MINE_CPU;
+    float mine_time_cpu;
+    START_TIMER();
+    int nonce = device_mine_dispatcher(payload, diff, m_type);
+    STOP_RECORD_TIMER(mine_time_cpu);
+    cout << "Time spent to mine using CPU: " << mine_time_cpu << "ms" << " with nonce:" << nonce << endl;
+
+    Block block(candidate_block, nonce);
+    blockchain.addBlock(block);
+
+
+    return 0;
 }
