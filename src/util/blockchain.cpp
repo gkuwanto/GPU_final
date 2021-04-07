@@ -31,7 +31,7 @@ string CandidateBlock::getHashableString() {
     stringstream ss;
     ss << this->timestamp << this->previous_block;
     for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
-        ss << *it;
+        ss << *it << "\n";
     }
     return ss.str();
 }
