@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 
     Block block(candidate_block, nonce);
     blockchain.addBlock(block);
-    ofstream ofs('output.txt');
+    ofstream ofs("output.txt");
     ofs << blockchain.str();
 
 
