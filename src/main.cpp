@@ -4,6 +4,7 @@
 #include "module/device_verify.cuh"
 #include "module/device_mine.cuh"
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <map>
 #include <boost/algorithm/hex.hpp>
@@ -95,7 +96,8 @@ int main(int argc, char** argv) {
 
     Block block(candidate_block, nonce);
     blockchain.addBlock(block);
-    cout << blockchain.str();
+    ofstream ofs('output.txt');
+    ofs << blockchain.str();
 
 
     return 0;
