@@ -30,6 +30,7 @@ class Block {
         std::string calculateHash();
         Block(CandidateBlock, uint32_t);
         bool verify_nonce();   
+        std::string getHashableString();
 };
 
 class Blockchain {
@@ -40,6 +41,7 @@ class Blockchain {
         Blockchain();
         uint32_t getDifficulty();
         void addBlock(Block new_block);
+        std::string str();
 };
 
 #endif
