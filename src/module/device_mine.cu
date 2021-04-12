@@ -40,8 +40,8 @@ uint32_t device_mine_dispatcher(string payload, uint32_t difficulty, MineType re
         case MineType::MINE_NAIVE: {
             uint32_t *nonce;
             bool *nonce_found;
-            cudaMallocManaged(&nonce, sizeof(uint32_t));
-            cudaMallocManaged(&nonce_found, sizeof(bool));
+            cudaMallocManaged(&nonce, 2*sizeof(uint32_t));
+            cudaMallocManaged(&nonce_found, 2*sizeof(bool));
             nonce_found[0] = false;
             int blockSize = 1024;
             int numBlocks = 4194304; // ceil(0xffffffff/1024)
