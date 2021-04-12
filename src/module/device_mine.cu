@@ -40,10 +40,15 @@ uint32_t device_mine_dispatcher(string payload, uint32_t difficulty, MineType re
         case MineType::MINE_NAIVE: {
             uint32_t *nonce;
             bool *nonce_found;
-            const char * c_payload = payload.c_str();
-            cudaMallocManaged(&nonce, 2*sizeof(uint32_t));
-            cudaMallocManaged(&nonce_found, 2*sizeof(bool));
+            char * c_payload;
+            uint32_t *dev_dif;
+            cudaMallocManaged(&nonce, sizeof(uint32_t));
+            cudaMallocManaged(&dev_dif, sizeof(uint32_t));
+            cudaMallocManaged(&nonce_found, sizeof(bool));
+            cudaMallocManaged(&c_payload, payload.length()*sizeof(char));
             nonce_found[0] = false;
+            c_payload = payload.c_str();
+            *dev_dif = difficulty;
             int blockSize = 1024;
             int numBlocks = 2; //4194304; // ceil(0xffffffff/1024)
             GPU_naive_mine<<numBlocks, blockSize>>(c_payload, difficulty, nonce, nonce_found);
