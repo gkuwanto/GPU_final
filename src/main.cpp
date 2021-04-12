@@ -87,12 +87,19 @@ int main(int argc, char** argv) {
     candidate_block.setPreviousBlock(hash_sha256("0")); // Genesis Block is "0"
     string payload = candidate_block.getHashableString();
 
-    MineType m_type = MineType::MINE_CPU;
+    MineType m_type_cpu = MineType::MINE_CPU;
     float mine_time_cpu;
     START_TIMER();
     int nonce = device_mine_dispatcher(payload, diff, m_type);
     STOP_RECORD_TIMER(mine_time_cpu);
     cout << "Time spent to mine using CPU: " << mine_time_cpu << "ms" << " with nonce:" << nonce << endl;
+
+    MineType m_type_naive = MineType::MINE_NAIVE;
+    float mine_time_naive;
+    START_TIMER();
+    int nonce = device_mine_dispatcher(payload, diff, m_type);
+    STOP_RECORD_TIMER(mine_time_naive);
+    cout << "Time spent to mine using GPU naive: " << mine_time_naive << "ms" << " with nonce:" << nonce << endl;
 
     Block block(candidate_block, nonce);
     blockchain.addBlock(block);
