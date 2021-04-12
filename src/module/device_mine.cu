@@ -17,7 +17,7 @@ uint32_t CPU_mine(string payload, uint32_t difficulty) {
     return 0;
 }
 
-__global__ void GPU_naive_mine(string payload, uint32_t difficulty, uint32_t* nonce, bool* nonce_found) {
+__global__ void GPU_naive_mine(char *payload, uint32_t difficulty, uint32_t* nonce, bool* nonce_found) {
     if (!nonce_found[0]){
         uint32_t candidate_nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
         stringstream ss;
@@ -40,12 +40,13 @@ uint32_t device_mine_dispatcher(string payload, uint32_t difficulty, MineType re
         case MineType::MINE_NAIVE: {
             uint32_t *nonce;
             bool *nonce_found;
+            const char * c_payload = payload.c_str();
             cudaMallocManaged(&nonce, 2*sizeof(uint32_t));
             cudaMallocManaged(&nonce_found, 2*sizeof(bool));
             nonce_found[0] = false;
             int blockSize = 1024;
-            int numBlocks = 4194304; // ceil(0xffffffff/1024)
-            GPU_naive_mine<<1, 1024>>(payload, difficulty, nonce, nonce_found);
+            int numBlocks = 2; //4194304; // ceil(0xffffffff/1024)
+            GPU_naive_mine<<numBlocks, blockSize>>(c_payload, difficulty, nonce, nonce_found);
             cudaDeviceSynchronize();
             return nonce[0];
         }
