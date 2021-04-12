@@ -45,7 +45,7 @@ uint32_t device_mine_dispatcher(string payload, uint32_t difficulty, MineType re
             nonce_found[0] = false;
             int blockSize = 1024;
             int numBlocks = 4194304; // ceil(0xffffffff/1024)
-            GPU_naive_mine<<numBlocks, blockSize>>(payload, difficulty, nonce, nonce_found);
+            GPU_naive_mine<<1, 1024>>(payload, difficulty, nonce, nonce_found);
             cudaDeviceSynchronize();
             return nonce[0];
         }
