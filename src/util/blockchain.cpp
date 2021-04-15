@@ -31,7 +31,7 @@ string CandidateBlock::getHashableString() {
     stringstream ss;
     ss << this->timestamp << this->previous_block;
     for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
-        ss << *it;
+        ss << *it << "\n";
     }
     return ss.str();
 }
@@ -39,6 +39,9 @@ string CandidateBlock::getHashableString() {
 Block::Block(CandidateBlock c_block, uint32_t nonce) {
     this->candidate_block = c_block;
     this->nonce = nonce;
+}
+string Block::getHashableString() {
+    return this->candidate_block.getHashableString();
 }
 string Block::calculateHash() {
     stringstream ss;
@@ -68,4 +71,11 @@ void Blockchain::addBlock(Block new_block) {
     } catch(string e) {
         cout << e << endl;
     }
+}
+string Blockchain::str() {
+    stringstream ss;
+    for (vector<Block>::iterator it = this->block_chain.begin(); it != this->block_chain.end(); it++) {
+        ss << it->getHashableString() << "\n";
+    }
+    return ss.str();
 }

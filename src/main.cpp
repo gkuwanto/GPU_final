@@ -4,6 +4,7 @@
 #include "module/device_verify.cuh"
 #include "module/device_mine.cuh"
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <map>
 #include <boost/algorithm/hex.hpp>
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
     uint32_t diff = blockchain.getDifficulty();
     CandidateBlock candidate_block(diff);
     candidate_block.setTransactionList(tx_list);
-    candidate_block.setPreviousBlock("00000000000");
+    candidate_block.setPreviousBlock(hash_sha256("0")); // Genesis Block is "0"
     string payload = candidate_block.getHashableString();
 
     MineType m_type = MineType::MINE_CPU;
@@ -95,6 +96,8 @@ int main(int argc, char** argv) {
 
     Block block(candidate_block, nonce);
     blockchain.addBlock(block);
+    ofstream ofs("output.txt");
+    ofs << blockchain.str();
 
 
     return 0;
