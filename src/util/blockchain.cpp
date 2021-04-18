@@ -45,7 +45,7 @@ string Block::getHashableString() {
 }
 string Block::calculateHash() {
     stringstream ss;
-    ss << this->candidate_block.getHashableString() << hex << nonce;
+    ss << this->candidate_block.getHashableString() << setfill('0') << setw(8) << right << hex  << nonce;
     return hash_sha256(ss.str());
 }
 
