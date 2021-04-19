@@ -174,42 +174,42 @@ __global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t length, 
 	set_difficulty(ctx.difficulty, difficulty);
 
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
-    sha256_change_nonce(ctx, nonce);
+    sha256_change_nonce(&ctx, nonce);
 	unsigned char hash[32];
 	
 	// pad
 	WORD i;
-	i = ctx->datalen;
+	i = (&ctx)->datalen;
 
 	//Pad whatever data is left in the buffer.
 	//If it's less than 56 bytes, 8 bytes required for bit length l
 	//For this application we are always the first case
-	if (ctx->datalen < 56) {
-		ctx->data[i++] = 0x80;
+	if ((&ctx)->datalen < 56) {
+		(&ctx)->data[i++] = 0x80;
 		while (i < 56)
-			ctx->data[i++] = 0x00;
+			(&ctx)->data[i++] = 0x00;
 	}
 	//Otherwise, pad with 0s and store l in its own message block
 	else {
-		ctx->data[i++] = 0x80;
+		(&ctx)->data[i++] = 0x80;
 		while (i < 64)
-			ctx->data[i++] = 0x00;
+			(&ctx)->data[i++] = 0x00;
 		// transform
 		WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
 		for (i = 0, j = 0; i < 16; ++i, j += 4)
-			m[i] = (ctx->data[j] << 24) | (ctx->data[j + 1] << 16) | (ctx->data[j + 2] << 8) | (ctx->data[j + 3]);
+			m[i] = ((&ctx)->data[j] << 24) | ((&ctx)->data[j + 1] << 16) | ((&ctx)->data[j + 2] << 8) | ((&ctx)->data[j + 3]);
 		for ( ; i < 64; ++i)
 			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
-		a = ctx->state[0];
-		b = ctx->state[1];
-		c = ctx->state[2];
-		d = ctx->state[3];
-		e = ctx->state[4];
-		f = ctx->state[5];
-		g = ctx->state[6];
-		h = ctx->state[7];
+		a = (&ctx)->state[0];
+		b = (&ctx)->state[1];
+		c = (&ctx)->state[2];
+		d = (&ctx)->state[3];
+		e = (&ctx)->state[4];
+		f = (&ctx)->state[5];
+		g = (&ctx)->state[6];
+		h = (&ctx)->state[7];
 
 		for (i = 0; i < 64; ++i) {
 			t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
@@ -224,47 +224,47 @@ __global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t length, 
 			a = t1 + t2;
 		}
 
-		ctx->state[0] += a;
-		ctx->state[1] += b;
-		ctx->state[2] += c;
-		ctx->state[3] += d;
-		ctx->state[4] += e;
-		ctx->state[5] += f;
-		ctx->state[6] += g;
-		ctx->state[7] += h;
+		(&ctx)->state[0] += a;
+		(&ctx)->state[1] += b;
+		(&ctx)->state[2] += c;
+		(&ctx)->state[3] += d;
+		(&ctx)->state[4] += e;
+		(&ctx)->state[5] += f;
+		(&ctx)->state[6] += g;
+		(&ctx)->state[7] += h;
 
 		// end transform
-		memset(ctx->data, 0, 56);
+		memset((&ctx)->data, 0, 56);
 	}
 
 	//Store value of l
-	ctx->bitlen += ctx->datalen * 8;
-	ctx->data[63] = ctx->bitlen;
-	ctx->data[62] = ctx->bitlen >> 8;
-	ctx->data[61] = ctx->bitlen >> 16;
-	ctx->data[60] = ctx->bitlen >> 24;
-	ctx->data[59] = ctx->bitlen >> 32;
-	ctx->data[58] = ctx->bitlen >> 40;
-	ctx->data[57] = ctx->bitlen >> 48;
-	ctx->data[56] = ctx->bitlen >> 56;
+	(&ctx)->bitlen += (&ctx)->datalen * 8;
+	(&ctx)->data[63] = (&ctx)->bitlen;
+	(&ctx)->data[62] = (&ctx)->bitlen >> 8;
+	(&ctx)->data[61] = (&ctx)->bitlen >> 16;
+	(&ctx)->data[60] = (&ctx)->bitlen >> 24;
+	(&ctx)->data[59] = (&ctx)->bitlen >> 32;
+	(&ctx)->data[58] = (&ctx)->bitlen >> 40;
+	(&ctx)->data[57] = (&ctx)->bitlen >> 48;
+	(&ctx)->data[56] = (&ctx)->bitlen >> 56;
 
 	// transform
 
 	WORD a, b, c, d, e, f, g, h, j, t1, t2, m[64];
 
 	for (i = 0, j = 0; i < 16; ++i, j += 4)
-		m[i] = (ctx->data[j] << 24) | (ctx->data[j + 1] << 16) | (ctx->data[j + 2] << 8) | (ctx->data[j + 3]);
+		m[i] = ((&ctx)->data[j] << 24) | ((&ctx)->data[j + 1] << 16) | ((&ctx)->data[j + 2] << 8) | ((&ctx)->data[j + 3]);
 	for ( ; i < 64; ++i)
 		m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
-	a = ctx->state[0];
-	b = ctx->state[1];
-	c = ctx->state[2];
-	d = ctx->state[3];
-	e = ctx->state[4];
-	f = ctx->state[5];
-	g = ctx->state[6];
-	h = ctx->state[7];
+	a = (&ctx)->state[0];
+	b = (&ctx)->state[1];
+	c = (&ctx)->state[2];
+	d = (&ctx)->state[3];
+	e = (&ctx)->state[4];
+	f = (&ctx)->state[5];
+	g = (&ctx)->state[6];
+	h = (&ctx)->state[7];
 
 	for (i = 0; i < 64; ++i) {
 		t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
@@ -279,33 +279,33 @@ __global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t length, 
 		a = t1 + t2;
 	}
 
-	ctx->state[0] += a;
-	ctx->state[1] += b;
-	ctx->state[2] += c;
-	ctx->state[3] += d;
-	ctx->state[4] += e;
-	ctx->state[5] += f;
-	ctx->state[6] += g;
-	ctx->state[7] += h;
+	(&ctx)->state[0] += a;
+	(&ctx)->state[1] += b;
+	(&ctx)->state[2] += c;
+	(&ctx)->state[3] += d;
+	(&ctx)->state[4] += e;
+	(&ctx)->state[5] += f;
+	(&ctx)->state[6] += g;
+	(&ctx)->state[7] += h;
 
 	// end transform
 
 	for (i = 0; i < 4; ++i) {
-		hash[i]      = (ctx->state[0] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 4]  = (ctx->state[1] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 8]  = (ctx->state[2] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 12] = (ctx->state[3] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 16] = (ctx->state[4] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 20] = (ctx->state[5] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 24] = (ctx->state[6] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
+		hash[i]      = ((&ctx)->state[0] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 4]  = ((&ctx)->state[1] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 8]  = ((&ctx)->state[2] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 12] = ((&ctx)->state[3] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 16] = ((&ctx)->state[4] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 20] = ((&ctx)->state[5] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 24] = ((&ctx)->state[6] >> (24 - i * 8)) & 0x000000ff;
+		hash[i + 28] = ((&ctx)->state[7] >> (24 - i * 8)) & 0x000000ff;
 	}
 
 	// Check hash
 	i=0;
-	while(hash[i] == ctx->difficulty[i])
+	while(hash[i] == (&ctx)->difficulty[i])
 		i++;
-	if(hash[i] < ctx->difficulty[i]) {
+	if(hash[i] < (&ctx)->difficulty[i]) {
 		nr->nonce_found = true;
 		nr->nonce = nonce;
 	}
