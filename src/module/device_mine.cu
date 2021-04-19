@@ -166,7 +166,13 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
     return 0;
 }
 
-__global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
+__global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t length, uint32_t difficulty) {
+
+	SHA256_CTX ctx;
+	sha256_init(&ctx);
+	sha256_update(&ctx, (unsigned char *) data, length-1);	//ctx.state contains a-h
+	set_difficulty(ctx.difficulty, difficulty);
+
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
     sha256_change_nonce(ctx, nonce);
 	unsigned char hash[32];
@@ -315,6 +321,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
         case MineType::MINE_GPU: {
             unsigned char *data = new unsigned char[payload.length() + 1];
+			size_t length = payload.length()+1;
             
             std::copy( payload.begin(), payload.end(), data );
             data[payload.length()] = 0;
@@ -323,26 +330,21 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             Nonce_result h_nr;
             initialize_nonce_result(&h_nr);
             
-            SHA256_CTX ctx;
-            sha256_init(&ctx);
-            sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
-            set_difficulty(ctx.difficulty, difficulty);
-			
+			unsigned char *d_data;
 
-            SHA256_CTX *d_ctx;
             Nonce_result *d_nr;
-            CUDA_SAFE_CALL(cudaMalloc((void **)&d_ctx, sizeof(SHA256_CTX)));
+            CUDA_SAFE_CALL(cudaMalloc((void **)&d_data, length * sizeof(unsigned char)));
             CUDA_SAFE_CALL(cudaMalloc((void **)&d_nr, sizeof(Nonce_result)));
-            CUDA_SAFE_CALL(cudaMemcpy(d_ctx, (void *) &ctx, sizeof(SHA256_CTX), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(d_data, (void *) &data, length * sizeof(unsigned char), cudaMemcpyHostToDevice));
             CUDA_SAFE_CALL(cudaMemcpy(d_nr, (void *) &h_nr, sizeof(Nonce_result), cudaMemcpyHostToDevice));
 
-            // 4194304 * 1024 = 0xffffffff + 1
+            // 8192 * 8192 * 64 = 0xffffffff + 1
 
 			// dim3 gridDim(8192,8192);
 			dim3 gridDim(1,1);
 
 			dim3 blockDim(64,1);
-            GPU_mine<<<gridDim, blockDim>>>(d_ctx, d_nr);
+            GPU_mine<<<gridDim, blockDim>>>(d_data, d_nr, length, difficulty);
 
 			cudaDeviceSynchronize();
 
