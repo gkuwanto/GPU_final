@@ -134,7 +134,7 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 	}
 }
 
-__device__ __host__ void sha256_pad(SHA256_CTX *ctx)
+void sha256_pad(SHA256_CTX *ctx)
 {
 	WORD i;
 
