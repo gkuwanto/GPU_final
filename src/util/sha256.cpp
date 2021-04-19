@@ -39,6 +39,7 @@ void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
 	difficulty[msb++] = (nBits & 0xff0000) >> 16;
 	difficulty[msb++] = (nBits & 0xff00) >> 8;
 	difficulty[msb] = nBits & 0xff;
+	cout << *difficulty;
 }
 
 

@@ -203,13 +203,11 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 
 		unsigned char *hhh = (unsigned char *) hash;
 		cout<<hash<<endl;
-		cout<<ctx.difficulty<<endl;
 
-		break;
 		i=0;
 		while(hhh[i] == (&ctx)->difficulty[i])
 			i++;
-
+		cout<<i;
 		if(hhh[i] < (&ctx)->difficulty[i]) {
 			//Synchronization Issue
 			//Kind of a hack but it really doesn't matter which nonce
