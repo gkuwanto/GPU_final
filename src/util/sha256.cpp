@@ -31,14 +31,16 @@ static const WORD k[64] = {
 };
 
 void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
-	int i;
+	unsigned int i;
 	for(i=0; i<32; i++) {
 		if (i < nBits) {
 			difficulty[i] = '0';
-		} else {
+		}
+		else {
 			difficulty[i] = 'f';
 		}
 	}
+	difficulty[31] = 0;
 	
 }
 
