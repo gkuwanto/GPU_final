@@ -103,6 +103,8 @@ int main(int argc, char** argv) {
     cout << "Time spent to mine using GPU: " << mine_time_gpu << "ms" << " with nonce:" << nonce_gpu << endl;
 
     Block block(candidate_block, nonce);
+    Block block_gpu(candidate_block, nonce_gpu);
+    cout << block_gpu.verify_nonce();
     blockchain.addBlock(block);
     ofstream ofs("output.txt");
     ofs << blockchain.str();
