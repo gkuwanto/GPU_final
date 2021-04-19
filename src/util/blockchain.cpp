@@ -137,11 +137,13 @@ bool Block::verify_nonce(){
     uint32_t nDifficulty = this->candidate_block.getDifficulty();
     unsigned char difficulty[32];
     set_difficulty(difficulty, nDifficulty);
-    cout << hash<<endl<<difficulty;
     int i=0;
     while(hash[i] == difficulty[i])
         i++;
-    return (i>=nDifficulty);
+    if(hash[i] < difficulty[i]){
+        return true;
+    }
+    return false;
 }
 
 Blockchain::Blockchain() {
