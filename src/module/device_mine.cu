@@ -144,34 +144,34 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
         unsigned int m[64];
 		unsigned int hash[8];
 		unsigned int a,b,c,d,e,f,g,h,t1,t2;
-		sha256_change_nonce(ctx, nonce);
-		unsigned int *le_data_loop = (unsigned int *) ctx->data;
+		sha256_change_nonce(&ctx, nonce);
+		unsigned int *le_data_loop = (unsigned int *) &ctx->data;
 		for(i=0; i<16; i++)
 			m[i] = le_data_loop[i];
 		
 		for ( ; i < 64; ++i)
 			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
-		a = ctx->state[0];
-		b = ctx->state[1];
-		c = ctx->state[2];
-		d = ctx->state[3];
-		e = ctx->state[4];
-		f = ctx->state[5];
-		g = ctx->state[6];
-		h = ctx->state[7];
+		a = &ctx->state[0];
+		b = &ctx->state[1];
+		c = &ctx->state[2];
+		d = &ctx->state[3];
+		e = &ctx->state[4];
+		f = &ctx->state[5];
+		g = &ctx->state[6];
+		h = &ctx->state[7];
 
 		SHA256_COMPRESS_8X
 
 		//Prepare input for next SHA-256
-		m[0] = a + ctx->state[0];
-		m[1] = b + ctx->state[1];
-		m[2] = c + ctx->state[2];
-		m[3] = d + ctx->state[3];
-		m[4] = e + ctx->state[4];
-		m[5] = f + ctx->state[5];
-		m[6] = g + ctx->state[6];
-		m[7] = h + ctx->state[7];
+		m[0] = a + &ctx->state[0];
+		m[1] = b + &ctx->state[1];
+		m[2] = c + &ctx->state[2];
+		m[3] = d + &ctx->state[3];
+		m[4] = e + &ctx->state[4];
+		m[5] = f + &ctx->state[5];
+		m[6] = g + &ctx->state[6];
+		m[7] = h + &ctx->state[7];
 		//Pad the input
 		m[8] = 0x80000000;	
 		for(i=9; i<15; i++)
@@ -203,10 +203,10 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 
 		unsigned char *hhh = (unsigned char *) hash;
 		i=0;
-		while(hhh[i] == ctx->difficulty[i])
+		while(hhh[i] == &ctx->difficulty[i])
 			i++;
 
-		if(hhh[i] < ctx->difficulty[i]) {
+		if(hhh[i] < &ctx->difficulty[i]) {
 			//Synchronization Issue
 			//Kind of a hack but it really doesn't matter which nonce
 			//is written to the output, they're all winners :)
