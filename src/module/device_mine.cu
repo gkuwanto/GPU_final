@@ -203,7 +203,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 
 		unsigned char *hhh = (unsigned char *) hash;
 		cout<<hash<<endl;
-		cout<<(&ctx)->difficulty<<endl;
+		cout<<ctx.difficulty<<endl;
 
 		break;
 		i=0;
