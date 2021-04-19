@@ -221,6 +221,15 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             sha256_init(&ctx);
             sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
             set_difficulty(ctx.difficulty, difficulty);
+			unsigned int *le_data = (unsigned int *)ctx.data;
+			unsigned int le;
+			for(i=0, j=0; i<16; i++, j+=4) {
+				//Get the data out as big endian
+				//Store it as little endian via x86
+				//On the device side cast the pointer as int* and dereference it correctly
+				le = (ctx.data[j] << 24) | (ctx.data[j + 1] << 16) | (ctx.data[j + 2] << 8) | (ctx.data[j + 3]);
+				le_data[i] = le;
+			}
 
 
             SHA256_CTX *d_ctx;
@@ -240,7 +249,9 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
 			cudaDeviceSynchronize();
 
-            CUDA_SAFE_CALL(cudaMemcpy(d_nr,(void *) &h_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
+            CUDA_SAFE_CALL(cudaMemcpy((void *) &h_nr, d_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
+
+			cudaDeviceSynchronize();
 
 
 			return h_nr.nonce;
