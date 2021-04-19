@@ -130,80 +130,13 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 	sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
 	set_difficulty(ctx.difficulty, difficulty);
 
-	unsigned int *le_data = (unsigned int *)ctx.data;
-	unsigned int le;
-	for(i=0, j=0; i<16; i++, j+=4) {
-		//Get the data out as big endian
-		//Store it as little endian via x86
-		//On the device side cast the pointer as int* and dereference it correctly
-		le = (ctx.data[j] << 24) | (ctx.data[j + 1] << 16) | (ctx.data[j + 2] << 8) | (ctx.data[j + 3]);
-		le_data[i] = le;
-	}
-
     for(uint32_t nonce = 0; nonce<0xffffffff; nonce++) {
-        unsigned int m[64];
-		unsigned int hash[8];
-		unsigned int a,b,c,d,e,f,g,h,t1,t2;
+        
+		unsigned char hash[32];
 		sha256_change_nonce(&ctx, nonce);
-		unsigned int *le_data_loop = (unsigned int *) (&ctx)->data;
-		for(i=0; i<16; i++)
-			m[i] = le_data_loop[i];
-		
-		for ( ; i < 64; ++i)
-			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-		a = (&ctx)->state[0];
-		b = (&ctx)->state[1];
-		c = (&ctx)->state[2];
-		d = (&ctx)->state[3];
-		e = (&ctx)->state[4];
-		f = (&ctx)->state[5];
-		g = (&ctx)->state[6];
-		h = (&ctx)->state[7];
-
-		SHA256_COMPRESS_8X
-
-		//Prepare input for next SHA-256
-		m[0] = a + (&ctx)->state[0];
-		m[1] = b + (&ctx)->state[1];
-		m[2] = c + (&ctx)->state[2];
-		m[3] = d + (&ctx)->state[3];
-		m[4] = e + (&ctx)->state[4];
-		m[5] = f + (&ctx)->state[5];
-		m[6] = g + (&ctx)->state[6];
-		m[7] = h + (&ctx)->state[7];
-		//Pad the input
-		m[8] = 0x80000000;	
-		for(i=9; i<15; i++)
-			m[i] = 0x00;
-		m[15] = 0x00000100;	//Write out l=256
-		for (i=16 ; i < 64; ++i)
-			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-		//Initialize the SHA-256 registers
-		a = 0x6a09e667;
-		b = 0xbb67ae85;
-		c = 0x3c6ef372;
-		d = 0xa54ff53a;
-		e = 0x510e527f;
-		f = 0x9b05688c;
-		g = 0x1f83d9ab;
-		h = 0x5be0cd19;
-
-		SHA256_COMPRESS_1X
-
-		hash[0] = ENDIAN_SWAP_32(a + 0x6a09e667);
-		hash[1] = ENDIAN_SWAP_32(b + 0xbb67ae85);
-		hash[2] = ENDIAN_SWAP_32(c + 0x3c6ef372);
-		hash[3] = ENDIAN_SWAP_32(d + 0xa54ff53a);
-		hash[4] = ENDIAN_SWAP_32(e + 0x510e527f);
-		hash[5] = ENDIAN_SWAP_32(f + 0x9b05688c);
-		hash[6] = ENDIAN_SWAP_32(g + 0x1f83d9ab);
-		hash[7] = ENDIAN_SWAP_32(h + 0x5be0cd19);
-
-		unsigned char *hhh = (unsigned char *) hash;
-		cout<<*hhh<<endl;
-		cout<<(&ctx)->difficulty;
+		sha256_final(&ctx, hash);
+		cout<<hash<<endl;
+		cout<<(&ctx)->difficulty<<endl;
 
 		i=0;
 		while(hhh[i] == (&ctx)->difficulty[i])
