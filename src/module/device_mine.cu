@@ -232,8 +232,8 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
             // 4194304 * 1024 = 0xffffffff + 1
 
-			// dim3 gridDim(8192,8192);
-			dim3 gridDim(1,1);
+			dim3 gridDim(8192,8192);
+			// dim3 gridDim(1,1);
 
 			dim3 blockDim(64,1);
             GPU_mine<<<gridDim, blockDim>>>(d_ctx, d_nr);
