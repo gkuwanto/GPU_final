@@ -254,7 +254,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
 			cudaDeviceSynchronize();
 
-
+			cout << h_nr.nonce_found, h_nr.nonce;
 			return h_nr.nonce;
         }
 
