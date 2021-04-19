@@ -2,10 +2,8 @@
 #include "../util/utils.hpp"
 #include <iomanip>
 #include <sstream>
-extern "C" {
-	#include "sha256.h"
-}
-#include "sha256_unroll.h"
+#include "../util/sha256.hpp"
+#include "../util/sha256_unroll.hpp"
 
 using namespace std;
 

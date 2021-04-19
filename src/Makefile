@@ -45,9 +45,6 @@ TARGETS = main
 all: $(TARGETS)
 
 
-sha256.o: sha256.c
-	gcc -O1 -v -c -o $@ $^
-
 main: *.cpp */*.cpp device_verify.o device_mine.o
 	$(CC) $^ -o $@ -O3 $(LDFLAGS) -Wall -I$(CUDA_INC_PATH) -lcrypto++
 
