@@ -498,7 +498,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
             // 8192 * 8192 * 64 = 0xffffffff + 1
 
-			dim3 gridDim(4096,2048);
+			dim3 gridDim(4096,1);
 			// dim3 gridDim(1024,1);
 
 			dim3 blockDim(512,1);
