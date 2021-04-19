@@ -231,10 +231,13 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             CUDA_SAFE_CALL(cudaMemcpy(d_nr, (void *) &h_nr, sizeof(Nonce_result), cudaMemcpyHostToDevice));
 
             // 4194304 * 1024 = 0xffffffff + 1
-            GPU_mine<<<4194304, 1024>>>(d_ctx, d_nr);
+            GPU_mine<<<1024, 1024>>>(d_ctx, d_nr);
 
 
             CUDA_SAFE_CALL(cudaMemcpy((void *) &h_nr, d_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
+
+
+			cudaDeviceSynchronize();
 			return h_nr.nonce;
         }
 
