@@ -22,7 +22,11 @@ void CandidateBlock::setPreviousBlock(string prev_hash) {
     this->previous_block = prev_hash;
 }
 void CandidateBlock::setTransactionList(vector<string>& tx_list) {
-    this->transaction_list = tx_list;
+    stringstream ss;
+    for (vector<string>::iterator it = tx_list.begin(); it != tx_list.end(); it++) {
+        ss << *it << "\n";
+    }
+    this->transaction_list_hash = hash_sha256(ss.str());
 }
 uint32_t CandidateBlock::getDifficulty(){
     return this->difficulty;
@@ -30,10 +34,8 @@ uint32_t CandidateBlock::getDifficulty(){
 
 string CandidateBlock::getHashableString() {
     stringstream ss;
-    ss << this->timestamp << this->previous_block;
-    for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
-        ss << *it << "\n";
-    }
+    ss << this->timestamp << this->previous_block<<this->transaction_list_hash;
+    
     return ss.str();
 }
 
