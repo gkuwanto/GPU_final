@@ -142,13 +142,13 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 	Nonce_result h_nr;
 	initialize_nonce_result(&h_nr);
 	
-	SHA256_CTX ctx;
+	
+
+    for(uint32_t nonce = 0; nonce<0xffffffff; nonce++) {
+        SHA256_CTX ctx;
 	sha256_init(&ctx);
 	sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
 	set_difficulty(ctx.difficulty, difficulty);
-
-    for(uint32_t nonce = 0; nonce<0xffffffff; nonce++) {
-        
 		unsigned char hash[32];
 		sha256_change_nonce(&ctx, nonce);
 		sha256_final(&ctx, hash);
