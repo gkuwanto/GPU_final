@@ -5,6 +5,7 @@
 #include <chrono>
 #include "blockchain.hpp"
 #include "utils.hpp"
+#include "sha256.hpp"
 
 
 
@@ -43,16 +44,53 @@ Block::Block(CandidateBlock c_block, uint32_t nonce) {
 string Block::getHashableString() {
     return this->candidate_block.getHashableString();
 }
-string Block::calculateHash() {
-    stringstream ss;
-    ss << this->candidate_block.getHashableString() << setfill('0') << setw(8) << right << hex  << nonce;
-    return hash_sha256(ss.str());
+unsigned char* Block::calculateHash() {
+    string payload = this->candidate_block.getHashableString();
+
+    char *b = "0123456789abcdef";
+	unsigned char *a = (unsigned char *)b;
+	unsigned char nonce_byte[8] = {
+		a[((nonce >> 28) % 16)], a[((nonce >> 24) % 16)], a[((nonce >> 20) % 16)], 
+		a[((nonce >> 16) % 16)], a[((nonce >> 12) % 16)], a[((nonce >> 8)  % 16)],
+		a[((nonce >> 4)  % 16)], a[(nonce % 16)]
+	};
+
+	unsigned char *data = new unsigned char[payload.length() + 9];
+    std::copy( payload.begin(), payload.end(), data );
+
+	data[payload.length()+0] = nonce_byte[0];
+	data[payload.length()+1] = nonce_byte[1];
+	data[payload.length()+2] = nonce_byte[2];
+	data[payload.length()+3] = nonce_byte[3];
+	data[payload.length()+4] = nonce_byte[4];
+	data[payload.length()+5] = nonce_byte[5];
+	data[payload.length()+6] = nonce_byte[6];
+	data[payload.length()+7] = nonce_byte[7];
+	data[payload.length()+8] = 0;
+
+
+    SHA256_CTX ctx;
+	sha256_init(&ctx);
+	sha256_update(&ctx, (unsigned char *) data, payload.length()+8);	//ctx.state contains a-h
+	
+    unsigned char hash[32];
+
+    sha256_final(&ctx, hash);
+    
+    
+    return hash;
 }
 
 bool Block::verify_nonce(){
-    string hash = this->calculateHash();
-    uint32_t difficulty = this->candidate_block.getDifficulty();
-    return hash.substr(0, difficulty) == string(difficulty, '0');
+    unsigned char *hash = this->calculateHash();
+    uint32_t nDifficulty = this->candidate_block.getDifficulty();
+    unsigned char difficulty[32];
+    set_difficulty(difficulty, nDifficulty);
+    
+    int i=0;
+    while(hash[i] == difficulty[i])
+        i++;
+    return (hash[i] < (difficulty[i]);
 }
 
 Blockchain::Blockchain() {
@@ -64,7 +102,7 @@ uint32_t Blockchain::getDifficulty() {
 void Blockchain::addBlock(Block new_block) {
     try {
         if (!new_block.verify_nonce()) {
-            throw "Block below difficulty level";
+            throw string("Block below difficulty level");
         }
         this->block_chain.push_back(new_block);
         

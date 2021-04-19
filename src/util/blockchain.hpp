@@ -27,7 +27,7 @@ class Block {
         CandidateBlock candidate_block;
         uint32_t nonce;
     public:
-        std::string calculateHash();
+        unsigned char* calculateHash();
         Block(CandidateBlock, uint32_t);
         bool verify_nonce();   
         std::string getHashableString();
