@@ -56,7 +56,7 @@ void initialize_nonce_result(Nonce_result *nr) {
 	nr->nonce = 0;
 }
 
-void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr, ) {
+__global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr, ) {
     unsigned int m[64];
     unsigned int hash[8];
 	unsigned int a,b,c,d,e,f,g,h,t1,t2;
