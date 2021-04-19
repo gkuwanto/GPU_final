@@ -34,13 +34,13 @@ static const WORD k[64] = {
 void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
 	int i;
 	for(i=0; i<32; i++) {
-		difficulty[i] = 0;
+		if (i < nBits) {
+			difficulty[i] = '0'
+		} else {
+			difficulty[i] = 'f';
+		}
 	}
-	int msb = 32 - ((nBits & 0xff000000) >> 24);
-	difficulty[msb++] = (nBits & 0xff0000) >> 16;
-	difficulty[msb++] = (nBits & 0xff00) >> 8;
-	difficulty[msb] = nBits & 0xff;
-	std::cout << *difficulty;
+	
 }
 
 
