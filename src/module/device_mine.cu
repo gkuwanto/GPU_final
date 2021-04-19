@@ -126,7 +126,7 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
     unsigned int hash[8];
 	unsigned int a,b,c,d,e,f,g,h,t1,t2;
 	int i, j;
-	uint32_t nonce = gridDim.x*blockDim.x + blockDim.x*blockIdx.x + threadIdx.x;
+	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x
     sha256_change_nonce(ctx, nonce);
     unsigned int *le_data = (unsigned int *) ctx->data;
 	for(i=0; i<16; i++)
@@ -231,7 +231,12 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             CUDA_SAFE_CALL(cudaMemcpy(d_nr, (void *) &h_nr, sizeof(Nonce_result), cudaMemcpyHostToDevice));
 
             // 4194304 * 1024 = 0xffffffff + 1
-            GPU_mine<<<1024, 1024>>>(d_ctx, d_nr);
+
+			// dim3 gridDim(65535,130);
+			dim3 gridDim(1,1);
+
+			dim3 blockDim(512,1);
+            GPU_mine<<<gridDim, blockDim>>>(d_ctx, d_nr);
 
 
             CUDA_SAFE_CALL(cudaMemcpy((void *) &h_nr, d_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
