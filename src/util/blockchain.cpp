@@ -75,8 +75,6 @@ void Block::calculateHash(unsigned char *hash) {
 
     sha256_final(&ctx, hash);
     
-    
-    return hash;
 }
 
 bool Block::verify_nonce(){
