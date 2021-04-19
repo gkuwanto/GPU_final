@@ -52,7 +52,7 @@ void initialize_nonce_result(Nonce_result *nr) {
 __device__ __host__ void sha256_change_nonce(SHA256_CTX *ctx, uint32_t nonce)
 {
 	char *b = "0123456789abcdef";
-	unsigned char *a = (unsigned char *)b
+	unsigned char *a = (unsigned char *)b;
 	BYTE data[8] = {
 		a[((nonce >> 28) % 16)], a[((nonce >> 24) % 16)], a[((nonce >> 20) % 16)], 
 		a[((nonce >> 16) % 16)], a[((nonce >> 12) % 16)], a[((nonce >> 8)  % 16)],
