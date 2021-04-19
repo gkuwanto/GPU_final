@@ -223,6 +223,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             set_difficulty(ctx.difficulty, difficulty);
 			unsigned int *le_data = (unsigned int *)ctx.data;
 			unsigned int le;
+			int i, j;
 			for(i=0, j=0; i<16; i++, j+=4) {
 				//Get the data out as big endian
 				//Store it as little endian via x86
