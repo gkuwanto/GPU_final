@@ -310,7 +310,6 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		if(hash[i] < (&ctx)->difficulty[i]) {
 			(&h_nr)->nonce_found = true;
 			(&h_nr)->nonce = nonce;
-			cout << hash[0] << hash[1];
 			return h_nr.nonce;
 		}
     }
@@ -491,10 +490,10 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
             // 8192 * 8192 * 64 = 0xffffffff + 1
 
-			dim3 gridDim(8192,8192);
-			// dim3 gridDim(1,1);
+			// dim3 gridDim(4096,2048);
+			dim3 gridDim(1024,1);
 
-			dim3 blockDim(64,1);
+			dim3 blockDim(512,1);
             GPU_mine<<<gridDim, blockDim>>>(d_data, d_nr, length, difficulty);
 
 			cudaDeviceSynchronize();
