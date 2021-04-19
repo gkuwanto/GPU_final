@@ -159,7 +159,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		if(hash[i] < (&ctx)->difficulty[i]) {
 			(&h_nr)->nonce_found = true;
 			(&h_nr)->nonce = nonce;
-			cout << hash;
+			cout << hash[0] << hash[1];
 			return h_nr.nonce;
 		}
     }
