@@ -35,7 +35,7 @@ void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
 	int i;
 	for(i=0; i<32; i++) {
 		if (i < nBits) {
-			difficulty[i] = '0'
+			difficulty[i] = '0';
 		} else {
 			difficulty[i] = 'f';
 		}
