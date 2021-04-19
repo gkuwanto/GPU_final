@@ -43,6 +43,7 @@ void sha256_init(SHA256_CTX *ctx);
 void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len);
 void sha256_final(SHA256_CTX *ctx, BYTE hash[]);
 void set_difficulty(unsigned char *difficulty, uint32_t nBits);
+void sha256_pad(SHA256_CTX *ctx);
 
 
 #endif   // SHA256_H

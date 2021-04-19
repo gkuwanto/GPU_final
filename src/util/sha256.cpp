@@ -30,7 +30,7 @@ static const WORD k[64] = {
 	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
-void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
+void set_difficulty(unsigned char *difficulty, uint32_t nBits) {
 	int i;
 	for(i=0; i<32; i++) {
 		difficulty[i] = 0;
