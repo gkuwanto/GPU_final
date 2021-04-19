@@ -119,6 +119,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 	std::copy( payload.begin(), payload.end(), data );
 	data[payload.length()] = 0;
 	
+	int i, j;
 
 	Nonce_result h_nr;
 	initialize_nonce_result(&h_nr);
@@ -128,24 +129,25 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 	sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
 	set_difficulty(ctx.difficulty, difficulty);
 
-
-    unsigned int *le_data = (unsigned int *) ctx->data;
-	for(i=0; i<16; i++)
-		m[i] = le_data[i];
-    
-	for ( ; i < 64; ++i)
-        m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
+	unsigned int *le_data = (unsigned int *)ctx.data;
+	unsigned int le;
+	int i, j;
+	for(i=0, j=0; i<16; i++, j+=4) {
+		//Get the data out as big endian
+		//Store it as little endian via x86
+		//On the device side cast the pointer as int* and dereference it correctly
+		le = (ctx.data[j] << 24) | (ctx.data[j + 1] << 16) | (ctx.data[j + 2] << 8) | (ctx.data[j + 3]);
+		le_data[i] = le;
+	}
 
     for(uint32_t nonce = 0; nonce<0xffffffff; nonce++) {
         unsigned int m[64];
 		unsigned int hash[8];
 		unsigned int a,b,c,d,e,f,g,h,t1,t2;
-		int i, j;
 		sha256_change_nonce(ctx, nonce);
-		unsigned int *le_data = (unsigned int *) ctx->data;
+		unsigned int *le_data_loop = (unsigned int *) ctx->data;
 		for(i=0; i<16; i++)
-			m[i] = le_data[i];
+			m[i] = le_data_loop[i];
 		
 		for ( ; i < 64; ++i)
 			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
@@ -209,11 +211,11 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 			//Kind of a hack but it really doesn't matter which nonce
 			//is written to the output, they're all winners :)
 			//Further it's unlikely to even find a nonce let alone 2
-			nr->nonce_found = true;
+			h_nr->nonce_found = true;
 			//The nonce here has the correct endianess,
 			//but it must be stored in the block in little endian order
-			nr->nonce = nonce;
-			return nr->nonce;
+			h_nr->nonce = nonce;
+			return h_nr->nonce;
 		}
     }
     return 0;
