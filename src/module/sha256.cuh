@@ -34,5 +34,6 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[]);
 void set_difficulty(unsigned char *difficulty, uint32_t nBits);
 
 __device__ __host__ void sha256_transform(SHA256_CTX *ctx, const BYTE data[]);
+__device__ void sha256_change_nonce(SHA256_CTX *ctx, uint32_t nonce);
 
 #endif   // SHA256_H

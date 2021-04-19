@@ -53,6 +53,9 @@ device_verify.o: ./module/device_verify.cu
 device_mine.o: ./module/device_mine.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
 
+sha256.o: ./module/sha256.cu
+	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
+
 
 clean:
 	rm -f *.o $(TARGETS)

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <sstream>
 #include "sha256.cuh"
+#include "sha256_unroll.h"
 
 using namespace std;
 
