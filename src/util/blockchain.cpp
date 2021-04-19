@@ -44,7 +44,7 @@ Block::Block(CandidateBlock c_block, uint32_t nonce) {
 string Block::getHashableString() {
     return this->candidate_block.getHashableString();
 }
-unsigned char* Block::calculateHash() {
+void Block::calculateHash(unsigned char *hash) {
     string payload = this->candidate_block.getHashableString();
 
     char *b = "0123456789abcdef";
@@ -72,8 +72,6 @@ unsigned char* Block::calculateHash() {
     SHA256_CTX ctx;
 	sha256_init(&ctx);
 	sha256_update(&ctx, (unsigned char *) data, payload.length()+8);	//ctx.state contains a-h
-	
-    unsigned char hash[32];
 
     sha256_final(&ctx, hash);
     
@@ -82,7 +80,8 @@ unsigned char* Block::calculateHash() {
 }
 
 bool Block::verify_nonce(){
-    unsigned char *hash = this->calculateHash();
+    unsigned char hash[32];
+    this->calculateHash(hash);
     uint32_t nDifficulty = this->candidate_block.getDifficulty();
     unsigned char difficulty[32];
     set_difficulty(difficulty, nDifficulty);
@@ -90,7 +89,7 @@ bool Block::verify_nonce(){
     int i=0;
     while(hash[i] == difficulty[i])
         i++;
-    return (hash[i] < (difficulty[i]);
+    return (hash[i] < difficulty[i]);
 }
 
 Blockchain::Blockchain() {
