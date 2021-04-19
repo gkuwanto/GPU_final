@@ -210,11 +210,11 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 			//Kind of a hack but it really doesn't matter which nonce
 			//is written to the output, they're all winners :)
 			//Further it's unlikely to even find a nonce let alone 2
-			h_nr->nonce_found = true;
+			(&h_nr)->nonce_found = true;
 			//The nonce here has the correct endianess,
 			//but it must be stored in the block in little endian order
-			h_nr->nonce = nonce;
-			return h_nr->nonce;
+			(&h_nr)->nonce = nonce;
+			return h_nr.nonce;
 		}
     }
     return 0;
