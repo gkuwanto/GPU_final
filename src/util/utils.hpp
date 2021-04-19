@@ -16,7 +16,7 @@
 #define TRANSACTION_LOCKTIME_SIZE   4
 
 #define NUMBER_OF_ACCOUNTS          10
-#define NUMBER_OF_TRANSACTIONS      50    /* Number of transactions include both COINBASE and standard transactions */
+#define NUMBER_OF_TRANSACTIONS      1    /* Number of transactions include both COINBASE and standard transactions */
 #define COINBASE_DELAY              50      /* Number of transactions needed to generate a new COINBASE transaction */
 
 void parse_variable_integer(std::string raw_transaction, std::string& prefix, std::string& count, int* offset);
