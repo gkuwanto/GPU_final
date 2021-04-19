@@ -15,7 +15,6 @@
 /*************************** HEADER FILES ***************************/
 #include <stdlib.h>
 #include <memory.h>
-#include <iostream>
 #include "sha256.hpp"
 
 

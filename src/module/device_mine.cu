@@ -202,7 +202,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		hash[7] = ENDIAN_SWAP_32(h + 0x5be0cd19);
 
 		unsigned char *hhh = (unsigned char *) hash;
-		cout<<*hash<<endl;
+		cout<<*hhh<<endl;
 		cout<<(&ctx)->difficulty;
 
 		i=0;
