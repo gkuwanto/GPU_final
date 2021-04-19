@@ -159,6 +159,7 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		if(hash[i] < (&ctx)->difficulty[i]) {
 			(&h_nr)->nonce_found = true;
 			(&h_nr)->nonce = nonce;
+			cout << hash;
 			return h_nr.nonce;
 		}
     }
@@ -349,7 +350,6 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
 			cudaDeviceSynchronize();
 
-			cout << h_nr.nonce_found << h_nr.nonce;
 			return h_nr.nonce;
         }
 
