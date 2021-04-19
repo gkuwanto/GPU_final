@@ -207,7 +207,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             return CPU_mine(payload, difficulty);
         }
 
-        default: {
+        case MineType::MINE_GPU: {
             unsigned char *data = new unsigned char[payload.length() + 1];
             
             std::copy( payload.begin(), payload.end(), data );
