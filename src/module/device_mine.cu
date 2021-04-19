@@ -153,7 +153,6 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 			(&h_nr)->nonce = nonce;
 			return h_nr.nonce;
 		}
-		break;
     }
     return 0;
 }
