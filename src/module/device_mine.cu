@@ -118,7 +118,7 @@ __device__ void d_sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 		ctx->data[ctx->datalen] = data[i];
 		ctx->datalen++;
 		if (ctx->datalen == 64) {
-			sha256_transform(ctx, ctx->data);
+			d_sha256_transform(ctx, ctx->data);
 			ctx->bitlen += 512;
 			ctx->datalen = 0;
 		}
@@ -129,8 +129,8 @@ __device__ void d_sha256_final(SHA256_CTX *ctx, BYTE hash[])
 {
 	WORD i;
 
-	sha256_pad(ctx);
-	sha256_transform(ctx, ctx->data);
+	d_sha256_pad(ctx);
+	d_sha256_transform(ctx, ctx->data);
 
 	// Since this implementation uses little endian byte ordering and SHA uses big endian,
 	// reverse all the bytes when copying the final state to the output hash.
@@ -166,7 +166,7 @@ __device__ void d_sha256_pad(SHA256_CTX *ctx)
 		ctx->data[i++] = 0x80;
 		while (i < 64)
 			ctx->data[i++] = 0x00;
-		sha256_transform(ctx, ctx->data);
+		d_sha256_transform(ctx, ctx->data);
 		memset(ctx->data, 0, 56);
 	}
 
