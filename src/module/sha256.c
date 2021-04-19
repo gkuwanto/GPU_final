@@ -43,7 +43,7 @@ void set_difficulty(unsigned char *difficulty, unsigned int nBits) {
 
 
 /*********************** FUNCTION DEFINITIONS ***********************/
-__device__ __host__ void sha256_transform(SHA256_CTX *ctx, const BYTE data[])
+void sha256_transform(SHA256_CTX *ctx, const BYTE data[])
 {
 	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
@@ -111,18 +111,6 @@ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 			ctx->datalen = 0;
 		}
 	}
-}
-
-__device__ void sha256_change_nonce(SHA256_CTX *ctx, uint32_t nonce)
-{
-	char *a = "0123456789abcdef";
-	BYTE digits[8] = {
-		a[((nonce >> 28) % 16)], a[((nonce >> 24) % 16)], a[((nonce >> 20) % 16)], 
-		a[((nonce >> 16) % 16)], a[((nonce >> 12) % 16)], a[((nonce >> 8)  % 16)],
-		a[((nonce >> 4)  % 16)], a[(nonce % 16)]
-	};
-	sha256_update(ctx, digits, 8);
-	
 }
 
 void sha256_final(SHA256_CTX *ctx, BYTE hash[])
