@@ -240,7 +240,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 
 			cudaDeviceSynchronize();
 
-            CUDA_SAFE_CALL(cudaMemcpy((void *) &h_nr, d_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
+            CUDA_SAFE_CALL(cudaMemcpy(d_nr,(void *) &h_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
 
 
 			return h_nr.nonce;
