@@ -126,7 +126,7 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
     unsigned int hash[8];
 	unsigned int a,b,c,d,e,f,g,h,t1,t2;
 	int i, j;
-	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x
+	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
     sha256_change_nonce(ctx, nonce);
     unsigned int *le_data = (unsigned int *) ctx->data;
 	for(i=0; i<16; i++)
