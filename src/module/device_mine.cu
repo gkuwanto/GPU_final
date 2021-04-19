@@ -139,10 +139,10 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		cout<<(&ctx)->difficulty<<endl;
 
 		i=0;
-		while(hhh[i] == (&ctx)->difficulty[i])
+		while(hash[i] == (&ctx)->difficulty[i])
 			i++;
 		cout<<i;
-		if(hhh[i] < (&ctx)->difficulty[i]) {
+		if(hash[i] < (&ctx)->difficulty[i]) {
 			//Synchronization Issue
 			//Kind of a hack but it really doesn't matter which nonce
 			//is written to the output, they're all winners :)
