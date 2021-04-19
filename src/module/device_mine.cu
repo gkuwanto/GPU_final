@@ -229,7 +229,7 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
 	WORD a, b, c, d, e, f, g, h, j, t1, t2, m[64];
 
 	for (i = 0, j = 0; i < 16; ++i, j += 4)
-		m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
+		m[i] = (ctx->data[j] << 24) | (ctx->data[j + 1] << 16) | (ctx->data[j + 2] << 8) | (ctx->data[j + 3]);
 	for ( ; i < 64; ++i)
 		m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
@@ -265,9 +265,6 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
 	ctx->state[7] += h;
 
 	// end transform
-
-
-	WORD i;
 
 	for (i = 0; i < 4; ++i) {
 		hash[i]      = (ctx->state[0] >> (24 - i * 8)) & 0x000000ff;
