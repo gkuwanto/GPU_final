@@ -316,12 +316,12 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
     return 0;
 }
 
-__global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t length, uint32_t difficulty) {
+__global__ void GPU_mine(unsigned char *data, Nonce_result *nr , size_t *length, uint32_t *difficulty) {
 
 	SHA256_CTX ctx;
 	d_sha256_init(&ctx);
-	d_sha256_update(&ctx, (unsigned char *) data, length-1);	//ctx.state contains a-h
-	d_set_difficulty(ctx.difficulty, difficulty);
+	d_sha256_update(&ctx, (unsigned char *) data, *(length)-1);	//ctx.state contains a-h
+	d_set_difficulty(ctx.difficulty, *(difficulty));
 
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
     sha256_change_nonce(&ctx, nonce);
@@ -481,12 +481,19 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
             initialize_nonce_result(&h_nr);
             
 			unsigned char *d_data;
-
+			size_t *d_len;
+			uint32_t *d_dif;
             Nonce_result *d_nr;
+
+
             CUDA_SAFE_CALL(cudaMalloc((void **)&d_data, length * sizeof(unsigned char)));
             CUDA_SAFE_CALL(cudaMalloc((void **)&d_nr, sizeof(Nonce_result)));
+            CUDA_SAFE_CALL(cudaMalloc((void **)&d_len, sizeof(size_t)));
+            CUDA_SAFE_CALL(cudaMalloc((void **)&d_dif, sizeof(uint32_t)));
             CUDA_SAFE_CALL(cudaMemcpy(d_data, (void *) &data, length * sizeof(unsigned char), cudaMemcpyHostToDevice));
             CUDA_SAFE_CALL(cudaMemcpy(d_nr, (void *) &h_nr, sizeof(Nonce_result), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(d_len, (void *) &length, sizeof(size_t), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(d_dif, (void *) &difficulty, sizeof(uint32_t), cudaMemcpyHostToDevice));
 
             // 8192 * 8192 * 64 = 0xffffffff + 1
 
