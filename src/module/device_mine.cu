@@ -152,9 +152,9 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
     sha256_change_nonce(ctx, nonce);
 	unsigned char hash[32];
-
+	
 	// pad
-
+	WORD i;
 	i = ctx->datalen;
 
 	//Pad whatever data is left in the buffer.
@@ -174,7 +174,7 @@ __global__ void GPU_mine(SHA256_CTX *ctx, Nonce_result *nr ) {
 		WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
 		for (i = 0, j = 0; i < 16; ++i, j += 4)
-			m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
+			m[i] = (ctx->data[j] << 24) | (ctx->data[j + 1] << 16) | (ctx->data[j + 2] << 8) | (ctx->data[j + 3]);
 		for ( ; i < 64; ++i)
 			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
