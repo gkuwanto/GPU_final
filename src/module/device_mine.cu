@@ -135,8 +135,8 @@ uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
 		unsigned char hash[32];
 		sha256_change_nonce(&ctx, nonce);
 		sha256_final(&ctx, hash);
-		cout<<hash<<endl;
-		cout<<(&ctx)->difficulty<<endl;
+		cout<<hash[i]<<endl;
+		cout<<(&ctx)->difficulty[i]<<endl;
 
 		i=0;
 		while(hash[i] == (&ctx)->difficulty[i])
