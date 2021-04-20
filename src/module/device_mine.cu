@@ -269,7 +269,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 			cudaMalloc((void **) &dev_result, sizeof(uint32_t));
 			cudaMemcpy(dev_data, data, (length+1) * sizeof(char), cudaMemcpyHostToDevice);
 
-			dim3 block(1024, 1);
+			dim3 block(4096, 2048);
 			dim3 thread(512, 1);
 			GPU_mine<<<block, thread >>>(dev_data, difficulty, length, dev_result);
 
