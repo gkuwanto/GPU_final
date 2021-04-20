@@ -273,7 +273,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 			cudaDeviceSynchronize();
 
 
-			cudaMemcpy((void *) &result, dev_result, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&result, &dev_result, sizeof(uint32_t), cudaMemcpyDeviceToHost);
 			cudaDeviceSynchronize();
 
             return result;
