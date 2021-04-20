@@ -146,7 +146,9 @@ namespace sha2 {
 	
 		{
 			std::array<uint8_t, chunk_bytes> buf;
-			memcpy(buf.data(), data, length);
+			for (int i =0 ; i<length; i++){
+				buf[i] = data[i]
+			}
 	
 			auto i = length;
 			buf[i++] = 0x80;
