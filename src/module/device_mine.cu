@@ -9,7 +9,7 @@ using namespace std;
 
 template <size_t N>
 
-using sha256_hash = uint8_t[32];
+typedef sha256_hash = uint8_t[32];
 
 // SHA-2 uses big-endian integers.
 __device__ void write_u32(uint8_t* dest, uint32_t x)
