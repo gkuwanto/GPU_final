@@ -139,7 +139,7 @@ namespace sha2 {
 		};
 	
 		while (length >= chunk_bytes) {
-			chunk(data, hash, k);
+			chunk(data, (uint32_t *)hash,  (uint32_t *)k);
 			data += chunk_bytes;
 			length -= chunk_bytes;
 		}
@@ -156,7 +156,7 @@ namespace sha2 {
 					buf[i++] = 0;
 				}
 	
-				chunk(buf.data(), hash, k);
+				chunk(buf.data(), (uint32_t *) hash, (uint32_t *) k);
 				i = 0;
 			}
 	
@@ -166,7 +166,7 @@ namespace sha2 {
 	
 			write_u64(&buf[i], bit_length);
 	
-			chunk(buf.data(), hash, k);
+			chunk(buf.data(), (uint32_t *) hash, (uint32_t *) k);
 		}
 	
 		sha256_hash result;
