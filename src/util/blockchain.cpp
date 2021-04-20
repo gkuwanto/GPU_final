@@ -91,7 +91,7 @@ bool Block::verify_nonce(){
     while (hash[i] == '0'){
         i++;
     }
-    return i >= this->getDifficulty();
+    return i >= this->candidate_block->getDifficulty();
 }
 
 Blockchain::Blockchain() {
