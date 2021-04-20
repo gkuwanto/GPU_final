@@ -169,8 +169,6 @@ __device__ void	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t len
 	for (uint8_t i = 0; i != 8; ++i) {
 		write_u32(&result[i * 4], hash[i]);
 	}
-
-	return result;
 }
 
 __device__ void	sha256(const uint8_t* data, uint64_t length, uint8_t* result)
@@ -186,7 +184,7 @@ __device__ void	sha256(const uint8_t* data, uint64_t length, uint8_t* result)
 												0x1f83d9ab,
 												0x5be0cd19};
 
-	return sha256_impl(initial_hash_values, data, length,result);
+	sha256_impl(initial_hash_values, data, length,result);
 }
 
 uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
