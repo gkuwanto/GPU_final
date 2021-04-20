@@ -259,7 +259,7 @@ __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t leng
 		i++;
 	}
 	if(i>=difficulty){
-		return nonce;
+		result = nonce;
 	}
 }
 
@@ -278,7 +278,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 			const char *dev_data;
 			cudaMalloc((void **) &dev_data, (length+1) * sizeof(const char));
 			cudaMalloc((void **) &dev_result, sizeof(uint32_t));
-			cudaMemcpy(dev_data, (void *) &data, (length+1) * sizeof(const char), cudaMemcpyHostToDevice);
+			cudaMemcpy(dev_data, (void **) &data, (length+1) * sizeof(const char), cudaMemcpyHostToDevice);
 
 			dim3 block(1024, 1);
 			dim3 thread(512, 1);
