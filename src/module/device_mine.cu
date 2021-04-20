@@ -253,7 +253,7 @@ __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t leng
 	data[length+7] = a[((nonce) % 16)];
 
 	auto ptr = reinterpret_cast<const uint8_t*>(data);
-	sha2::sha256_hash hash = sha2::sha256(ptr, length+8);
+	auto hash = sha2::sha256(ptr, length+8);
 	uint32_t i = 0;
 	while (hash[i]==0){
 		i++;
