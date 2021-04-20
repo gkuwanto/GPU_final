@@ -144,7 +144,7 @@ __device__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint6
 	}
 
 	{
-		const uint8_t buf[chunk_bytes];
+		uint8_t buf[chunk_bytes];
 		for (int i =0 ; i<length; i++){
 			buf[i] = data[i];
 		}
