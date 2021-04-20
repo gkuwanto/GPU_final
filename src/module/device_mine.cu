@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+#include "../util/sha2.hpp"
 
 using namespace std;
 
@@ -12,7 +13,7 @@ using hash_array = std::array<uint8_t, N>;
 using sha256_hash = hash_array<32>;
 
 // SHA-2 uses big-endian integers.
-__device__ __host__ void write_u32(uint8_t* dest, uint32_t x)
+__device__ void write_u32(uint8_t* dest, uint32_t x)
 {
 	*dest++ = (x >> 24) & 0xff;
 	*dest++ = (x >> 16) & 0xff;
@@ -20,7 +21,7 @@ __device__ __host__ void write_u32(uint8_t* dest, uint32_t x)
 	*dest++ = (x >> 0) & 0xff;
 }
 
-__device__ __host__ void write_u64(uint8_t* dest, uint64_t x)
+__device__ void write_u64(uint8_t* dest, uint64_t x)
 {
 	*dest++ = (x >> 56) & 0xff;
 	*dest++ = (x >> 48) & 0xff;
@@ -32,13 +33,13 @@ __device__ __host__ void write_u64(uint8_t* dest, uint64_t x)
 	*dest++ = (x >> 0) & 0xff;
 }
 
-__device__ __host__  uint32_t read_u32(const uint8_t* src)
+__device__  uint32_t read_u32(const uint8_t* src)
 {
 	return static_cast<uint32_t>((src[0] << 24) | (src[1] << 16) |
 									(src[2] << 8) | src[3]);
 }
 
-__device__ __host__  uint64_t read_u64(const uint8_t* src)
+__device__  uint64_t read_u64(const uint8_t* src)
 {
 	uint64_t upper = read_u32(src);
 	uint64_t lower = read_u32(src + 4);
@@ -48,12 +49,12 @@ __device__ __host__  uint64_t read_u64(const uint8_t* src)
 // A compiler-recognised implementation of rotate right that avoids the
 // undefined behaviour caused by shifting by the number of bits of the left-hand
 // type. See John Regehr's article https://blog.regehr.org/archives/1063
-__device__ __host__  uint32_t ror(uint32_t x, uint32_t n)
+__device__  uint32_t ror(uint32_t x, uint32_t n)
 {
 	return (x >> n) | (x << (-n & 31));
 }
 
-__device__ __host__ uint64_t ror(uint64_t x, uint64_t n)
+__device__ uint64_t ror(uint64_t x, uint64_t n)
 {
 	return (x >> n) | (x << (-n & 63));
 }
@@ -61,7 +62,7 @@ __device__ __host__ uint64_t ror(uint64_t x, uint64_t n)
 // Both sha256_impl and sha512_impl are used by sha224/sha256 and
 // sha384/sha512 respectively, avoiding duplication as only the initial hash
 // values (s) and output hash length change.
-__device__ __host__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t length)
+__device__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t length)
 {
 	static_assert(sizeof(uint32_t) == 4, "sizeof(uint32_t) must be 4");
 	static_assert(sizeof(uint64_t) == 8, "sizeof(uint64_t) must be 8");
@@ -84,7 +85,7 @@ __device__ __host__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* da
 		0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
 		0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-	auto chunk = [=] __device__ __host__(const uint8_t* chunk_data, uint32_t* hash, uint32_t* k) {
+	auto chunk = [=] __device__(const uint8_t* chunk_data, uint32_t* hash, uint32_t* k) {
 		uint32_t w[64] = {0};
 
 		for (int i = 0; i != 16; ++i) {
@@ -178,7 +179,7 @@ __device__ __host__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* da
 	return result;
 }
 
-__device__ __host__ sha256_hash	sha256(const uint8_t* data, uint64_t length)
+__device__ sha256_hash	sha256(const uint8_t* data, uint64_t length)
 {
 	// First 32 bits of the fractional parts of the square roots of the first
 	// eight primes 2..19:
@@ -213,7 +214,7 @@ uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
 		data[length+7] = a[((nonce) % 16)];
 	
 		auto ptr = reinterpret_cast<const uint8_t*>(data);
-		sha256_hash hash = sha256(ptr, length+8);
+		auto hash = sha2::sha256(ptr, length+8);
 		uint32_t i = 0;
 		while (hash[i]==0){
 			i++;
