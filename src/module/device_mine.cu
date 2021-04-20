@@ -85,7 +85,7 @@ __device__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint6
 		0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
 		0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-	auto chunk = [=] __device__(uint8_t* chunk_data, uint32_t* hash, uint32_t* k) {
+	auto chunk = [=] __device__(const uint8_t* chunk_data, uint32_t* hash, uint32_t* k) {
 		uint32_t w[64] = {0};
 
 		for (int i = 0; i != 16; ++i) {
@@ -144,7 +144,7 @@ __device__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint6
 	}
 
 	{
-		uint8_t buf[chunk_bytes];
+		const uint8_t buf[chunk_bytes];
 		for (int i =0 ; i<length; i++){
 			buf[i] = data[i];
 		}
@@ -157,7 +157,7 @@ __device__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint6
 				buf[i++] = 0;
 			}
 
-			chunk((uint8_t *) buf, (uint32_t *) hash, (uint32_t *) k);
+			chunk((const uint8_t *) buf, (uint32_t *) hash, (uint32_t *) k);
 			i = 0;
 		}
 
