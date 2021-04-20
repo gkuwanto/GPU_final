@@ -236,7 +236,7 @@ uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
 
 __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t length, uint32_t* result) {
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
-	char data[length+8];
+	char data[160];
 	for (int i = 0; i<length; i ++){
 		data[i] = payload[i];
 	}
