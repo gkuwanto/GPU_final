@@ -235,7 +235,32 @@ uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
 }
 
 __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t length, uint32_t* result) {
-	result = 0;
+	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
+	char data[length+8];
+	for (int i = 0; i<length; i ++){
+		data[i] = payload[i];
+	}
+	
+	const char *a = "0123456789abcdef";
+
+	data[length+0] = a[((nonce >> 28) % 16)];
+	data[length+1] = a[((nonce >> 24) % 16)];
+	data[length+2] = a[((nonce >> 20) % 16)];
+	data[length+3] = a[((nonce >> 16) % 16)];
+	data[length+4] = a[((nonce >> 12) % 16)];
+	data[length+5] = a[((nonce >>  8) % 16)];
+	data[length+6] = a[((nonce >>  4) % 16)];
+	data[length+7] = a[((nonce) % 16)];
+
+	auto ptr = reinterpret_cast<const uint8_t*>(data);
+	sha2::sha256_hash hash = sha2::sha256(ptr, length+8);
+	uint32_t i = 0;
+	while (hash[i]==0){
+		i++;
+	}
+	if(i>=difficulty){
+		return nonce;
+	}
 }
 
 uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type) {
@@ -245,7 +270,26 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
         }
 
         case MineType::MINE_GPU: {
-            return 0;
+			const char *data = payload.c_str();
+			uint32_t length = payload.length();
+			uint32_t result = 0;
+
+			uint32_t *dev_result;
+			const char *dev_data;
+			cudaMalloc((void **) &dev_data, (length+1) * sizeof(const char));
+			cudaMalloc((void **) &dev_result, sizeof(uint32_t));
+			cudaMemcpy(dev_data, (void *) &data, (length+1) * sizeof(const char), cudaMemcpyHostToDevice);
+
+			dim3 block(1024, 1);
+			dim3 thread(512, 1);
+			GPU_mine<<<block, thread >>>(dev_data, difficulty, length, dev_result);
+
+			cudaDeviceSynchronize();
+
+
+			CUDA_SAFE_CALL(cudaMemcpy((void *) &result, dev_result, sizeof(uint32_t), cudaMemcpyDeviceToHost));
+
+            return result;
         }
 
     }
