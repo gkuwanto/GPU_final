@@ -35,9 +35,9 @@ endif
 
 # OS-architecture specific flags
 ifeq ($(OS_SIZE),32)
-	NVCCFLAGS := -m32
+	NVCCFLAGS := -m32  --expt-extended-lambda 
 else
-	NVCCFLAGS := -m64
+	NVCCFLAGS := -m64  --expt-extended-lambda 
 endif
 
 TARGETS = main
