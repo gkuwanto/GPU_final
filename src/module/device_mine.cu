@@ -7,8 +7,6 @@
 
 using namespace std;
 
-template <size_t N>
-
 
 // SHA-2 uses big-endian integers.
 __device__ void write_u32(uint8_t* dest, uint32_t x)
@@ -60,7 +58,7 @@ __device__ uint64_t ror(uint64_t x, uint64_t n)
 // Both sha256_impl and sha512_impl are used by sha224/sha256 and
 // sha384/sha512 respectively, avoiding duplication as only the initial hash
 // values (s) and output hash length change.
-__device__ uint8_t*	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t length)
+__device__ void	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t length, uint8_t* result)
 {
 	static_assert(sizeof(uint32_t) == 4, "sizeof(uint32_t) must be 4");
 	static_assert(sizeof(uint64_t) == 8, "sizeof(uint64_t) must be 8");
@@ -168,8 +166,6 @@ __device__ uint8_t*	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t
 		chunk((uint8_t *) buf, (uint32_t *) hash, (uint32_t *) k);
 	}
 
-	uint8_t result[32];
-
 	for (uint8_t i = 0; i != 8; ++i) {
 		write_u32(&result[i * 4], hash[i]);
 	}
@@ -177,7 +173,7 @@ __device__ uint8_t*	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t
 	return result;
 }
 
-__device__ uint8_t*	sha256(const uint8_t* data, uint64_t length)
+__device__ void	sha256(const uint8_t* data, uint64_t length, uint8_t* result)
 {
 	// First 32 bits of the fractional parts of the square roots of the first
 	// eight primes 2..19:
@@ -190,7 +186,7 @@ __device__ uint8_t*	sha256(const uint8_t* data, uint64_t length)
 												0x1f83d9ab,
 												0x5be0cd19};
 
-	return sha256_impl(initial_hash_values, data, length);
+	return sha256_impl(initial_hash_values, data, length,result);
 }
 
 uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
@@ -244,8 +240,8 @@ __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t leng
 	data[length+7] = a[((nonce) % 16)];
 
 	auto ptr = reinterpret_cast<const uint8_t*>(data);
-	uint8_t *hash = sha256(ptr, length+8);
-	// uint32_t hash[32] = {0};
+	uint8_t hash[32] = {1};
+	sha256(ptr, length+8, hash);
 	uint32_t i = 0;
 	while (hash[i]==0){
 		i++;
