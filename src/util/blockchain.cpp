@@ -61,7 +61,7 @@ void Block::calculateHash(char *hash) {
     auto length = payload_str.length();
     const char *payload = payload_str.c_str();
     char data[length+8];
-    for (int i = 0; i<length; i ++){
+    for (uint32_t i = 0; i<length; i ++){
         data[i] = payload[i];
     }
     
@@ -87,12 +87,11 @@ void Block::calculateHash(char *hash) {
 bool Block::verify_nonce(){
     char hash[129];
     this->calculateHash(hash);
-    int i = 0;
+    uint32_t i = 0;
     while (hash[i] == '0'){
         i++;
     }
-    return i >= current_difficulty;
-    return false;
+    return i >= this->getDifficulty();
 }
 
 Blockchain::Blockchain() {
