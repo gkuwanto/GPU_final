@@ -258,7 +258,7 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
         case MineType::MINE_GPU: {
 			char * data = new char[payload.size() + 1];
 			std::copy(payload.begin(), payload.end(), data);
-			data[str.size()] = '\0';
+			data[payload.size()] = '\0';
 			
 			uint32_t length = payload.length();
 			uint32_t result = 0;
