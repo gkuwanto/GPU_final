@@ -226,7 +226,7 @@ __global__ void GPU_mine(char* payload, uint32_t difficulty, uint32_t length, ui
 		data[i] = payload[i];
 	}
 	
-	const char *a = "0123456789abcdef";
+	char *a = "0123456789abcdef";
 
 	data[length+0] = a[((nonce >> 28) % 16)];
 	data[length+1] = a[((nonce >> 24) % 16)];
