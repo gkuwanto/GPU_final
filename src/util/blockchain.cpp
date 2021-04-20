@@ -5,6 +5,7 @@
 #include <chrono>
 #include "blockchain.hpp"
 #include "utils.hpp"
+#include "sha2.hpp"
 
 
 
@@ -21,7 +22,11 @@ void CandidateBlock::setPreviousBlock(string prev_hash) {
     this->previous_block = prev_hash;
 }
 void CandidateBlock::setTransactionList(vector<string>& tx_list) {
-    this->transaction_list = tx_list;
+    stringstream ss;
+    for (vector<string>::iterator it = tx_list.begin(); it != tx_list.end(); it++) {
+        ss << *it << "\n";
+    }
+    this->transaction_list_hash = hash_sha256(ss.str());
 }
 uint32_t CandidateBlock::getDifficulty(){
     return this->difficulty;
@@ -29,10 +34,8 @@ uint32_t CandidateBlock::getDifficulty(){
 
 string CandidateBlock::getHashableString() {
     stringstream ss;
-    ss << this->timestamp << this->previous_block;
-    for (vector<string>::iterator it = this->transaction_list.begin(); it != this->transaction_list.end(); it++) {
-        ss << *it << "\n";
-    }
+    ss << this->timestamp << this->previous_block<<this->transaction_list_hash;
+    
     return ss.str();
 }
 
@@ -43,16 +46,52 @@ Block::Block(CandidateBlock c_block, uint32_t nonce) {
 string Block::getHashableString() {
     return this->candidate_block.getHashableString();
 }
-string Block::calculateHash() {
-    stringstream ss;
-    ss << this->candidate_block.getHashableString() << hex << nonce;
-    return hash_sha256(ss.str());
+
+template <typename T>
+void
+print_hash(char* buf, const T& hash)
+{
+    for (auto c : hash) {
+        buf += sprintf(buf, "%02x", c);
+    }
+}
+
+void Block::calculateHash(char *hash) {
+    string payload_str = this->candidate_block.getHashableString();
+    auto length = payload_str.length();
+    const char *payload = payload_str.c_str();
+    char data[length+8];
+    for (uint32_t i = 0; i<length; i ++){
+        data[i] = payload[i];
+    }
+    
+    const char *a = "0123456789abcdef";
+
+    data[length+0] = a[((nonce >> 28) % 16)];
+    data[length+1] = a[((nonce >> 24) % 16)];
+    data[length+2] = a[((nonce >> 20) % 16)];
+    data[length+3] = a[((nonce >> 16) % 16)];
+    data[length+4] = a[((nonce >> 12) % 16)];
+    data[length+5] = a[((nonce >>  8) % 16)];
+    data[length+6] = a[((nonce >>  4) % 16)];
+    data[length+7] = a[((nonce) % 16)];
+	
+
+    
+    auto ptr = reinterpret_cast<const uint8_t*>(data);
+	sha2::sha256_hash result = sha2::sha256(ptr, length+8);
+    print_hash(hash, result);
+    
 }
 
 bool Block::verify_nonce(){
-    string hash = this->calculateHash();
-    uint32_t difficulty = this->candidate_block.getDifficulty();
-    return hash.substr(0, difficulty) == string(difficulty, '0');
+    char hash[129];
+    this->calculateHash(hash);
+    uint32_t i = 0;
+    while (hash[i] == '0'){
+        i++;
+    }
+    return i >= this->candidate_block.getDifficulty();
 }
 
 Blockchain::Blockchain() {
@@ -64,7 +103,7 @@ uint32_t Blockchain::getDifficulty() {
 void Blockchain::addBlock(Block new_block) {
     try {
         if (!new_block.verify_nonce()) {
-            throw "Block below difficulty level";
+            throw string("Block below difficulty level");
         }
         this->block_chain.push_back(new_block);
         

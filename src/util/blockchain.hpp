@@ -11,7 +11,7 @@ class CandidateBlock {
     private:
         uint64_t timestamp;
         std::string previous_block; /* Hash of previous block */
-        std::vector<std::string> transaction_list; /* List of transactions hash to be added */
+        std::string transaction_list_hash; /* Hash of List of transactions hash to be added */
         uint32_t difficulty;
     public:
         CandidateBlock();
@@ -27,7 +27,7 @@ class Block {
         CandidateBlock candidate_block;
         uint32_t nonce;
     public:
-        std::string calculateHash();
+        void calculateHash(char *);
         Block(CandidateBlock, uint32_t);
         bool verify_nonce();   
         std::string getHashableString();

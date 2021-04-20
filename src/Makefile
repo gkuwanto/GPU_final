@@ -35,14 +35,15 @@ endif
 
 # OS-architecture specific flags
 ifeq ($(OS_SIZE),32)
-	NVCCFLAGS := -m32
+	NVCCFLAGS := -m32  --expt-extended-lambda 
 else
-	NVCCFLAGS := -m64
+	NVCCFLAGS := -m64  --expt-extended-lambda 
 endif
 
 TARGETS = main
 
 all: $(TARGETS)
+
 
 main: *.cpp */*.cpp device_verify.o device_mine.o
 	$(CC) $^ -o $@ -O3 $(LDFLAGS) -Wall -I$(CUDA_INC_PATH) -lcrypto++
@@ -52,7 +53,6 @@ device_verify.o: ./module/device_verify.cu
 
 device_mine.o: ./module/device_mine.cu
 	$(NVCC) $(NVCCFLAGS) -O3 $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) -I$(CUDA_INC_PATH) -o $@ -c $<
-
 
 clean:
 	rm -f *.o $(TARGETS)
