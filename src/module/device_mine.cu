@@ -3,190 +3,198 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include "../util/sha256.hpp"
-#include "../util/sha256_unroll.hpp"
 
 using namespace std;
 
-#define ENDIAN_SWAP_32(x) (\
-	((x & 0xff000000) >> 24) | \
-	((x & 0x00ff0000) >> 8 ) | \
-	((x & 0x0000ff00) << 8 ) | \
-	((x & 0x000000ff) << 24))
+namespace sha2 {
 
-
-__constant__ uint32_t k[64] = {
-	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-	0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-	0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-	0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-	0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
-};
-
-inline void gpuAssert(cudaError_t code, char *file, int line, bool abort)
-{
-	if (code != cudaSuccess) 
+	template <size_t N>
+	using hash_array = std::array<uint8_t, N>;
+	
+	using sha256_hash = hash_array<32>;
+	
+	// SHA-2 uses big-endian integers.
+	__device__ __host__ void write_u32(uint8_t* dest, uint32_t x)
 	{
-		fprintf(stderr,"CUDA_SAFE_CALL: %s %s %d\n", cudaGetErrorString(code), file, line);
-		if (abort) exit(code);
+		*dest++ = (x >> 24) & 0xff;
+		*dest++ = (x >> 16) & 0xff;
+		*dest++ = (x >> 8) & 0xff;
+		*dest++ = (x >> 0) & 0xff;
 	}
-}
-#define CUDA_SAFE_CALL(ans) { gpuAssert((ans), __FILE__, __LINE__, true); }
-
-
-// sha256 function device
-
-__device__ void d_set_difficulty(unsigned char *difficulty, unsigned int nBits) {
-	unsigned int i;
-	for(i=0; i<32; i++) {
-		if (i < nBits) {
-			difficulty[i] = 0;
-		}
-		else {
-			difficulty[i] = 'f';
-		}
+	
+	__device__ __host__ void write_u64(uint8_t* dest, uint64_t x)
+	{
+		*dest++ = (x >> 56) & 0xff;
+		*dest++ = (x >> 48) & 0xff;
+		*dest++ = (x >> 40) & 0xff;
+		*dest++ = (x >> 32) & 0xff;
+		*dest++ = (x >> 24) & 0xff;
+		*dest++ = (x >> 16) & 0xff;
+		*dest++ = (x >> 8) & 0xff;
+		*dest++ = (x >> 0) & 0xff;
 	}
-	difficulty[31] = 0;
+	
+	__device__ __host__  uint32_t read_u32(const uint8_t* src)
+	{
+		return static_cast<uint32_t>((src[0] << 24) | (src[1] << 16) |
+									 (src[2] << 8) | src[3]);
+	}
+	
+	__device__ __host__  uint64_t read_u64(const uint8_t* src)
+	{
+		uint64_t upper = read_u32(src);
+		uint64_t lower = read_u32(src + 4);
+		return ((upper & 0xffffffff) << 32) | (lower & 0xffffffff);
+	}
+	
+	// A compiler-recognised implementation of rotate right that avoids the
+	// undefined behaviour caused by shifting by the number of bits of the left-hand
+	// type. See John Regehr's article https://blog.regehr.org/archives/1063
+	__device__ __host__  uint32_t ror(uint32_t x, uint32_t n)
+	{
+		return (x >> n) | (x << (-n & 31));
+	}
+	
+	__device__ __host__ uint64_t ror(uint64_t x, uint64_t n)
+	{
+		return (x >> n) | (x << (-n & 63));
+	}
+	
+	// Both sha256_impl and sha512_impl are used by sha224/sha256 and
+	// sha384/sha512 respectively, avoiding duplication as only the initial hash
+	// values (s) and output hash length change.
+	__device__ __host__ sha256_hash	sha256_impl(const uint32_t* s, const uint8_t* data, uint64_t length)
+	{
+		static_assert(sizeof(uint32_t) == 4, "sizeof(uint32_t) must be 4");
+		static_assert(sizeof(uint64_t) == 8, "sizeof(uint64_t) must be 8");
+	
+		constexpr size_t chunk_bytes = 64;
+		const uint64_t bit_length = length * 8;
+	
+		uint32_t hash[8] = {s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]};
+	
+		constexpr uint32_t k[64] = {
+			0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+			0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+			0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+			0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+			0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+			0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+			0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+			0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+			0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+			0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+			0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+	
+		auto chunk = [&hash, &k](const uint8_t* chunk_data) {
+			uint32_t w[64] = {0};
+	
+			for (int i = 0; i != 16; ++i) {
+				w[i] = read_u32(&chunk_data[i * 4]);
+			}
+	
+			for (int i = 16; i != 64; ++i) {
+				auto w15 = w[i - 15];
+				auto w2 = w[i - 2];
+				auto s0 = ror(w15, 7) ^ ror(w15, 18) ^ (w15 >> 3);
+				auto s1 = ror(w2, 17) ^ ror(w2, 19) ^ (w2 >> 10);
+				w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+			}
+	
+			auto a = hash[0];
+			auto b = hash[1];
+			auto c = hash[2];
+			auto d = hash[3];
+			auto e = hash[4];
+			auto f = hash[5];
+			auto g = hash[6];
+			auto h = hash[7];
+	
+			for (int i = 0; i != 64; ++i) {
+				auto s1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25);
+				auto ch = (e & f) ^ (~e & g);
+				auto temp1 = h + s1 + ch + k[i] + w[i];
+				auto s0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22);
+				auto maj = (a & b) ^ (a & c) ^ (b & c);
+				auto temp2 = s0 + maj;
+	
+				h = g;
+				g = f;
+				f = e;
+				e = d + temp1;
+				d = c;
+				c = b;
+				b = a;
+				a = temp1 + temp2;
+			}
+	
+			hash[0] += a;
+			hash[1] += b;
+			hash[2] += c;
+			hash[3] += d;
+			hash[4] += e;
+			hash[5] += f;
+			hash[6] += g;
+			hash[7] += h;
+		};
+	
+		while (length >= chunk_bytes) {
+			chunk(data);
+			data += chunk_bytes;
+			length -= chunk_bytes;
+		}
+	
+		{
+			std::array<uint8_t, chunk_bytes> buf;
+			memcpy(buf.data(), data, length);
+	
+			auto i = length;
+			buf[i++] = 0x80;
+	
+			if (i > chunk_bytes - 8) {
+				while (i < chunk_bytes) {
+					buf[i++] = 0;
+				}
+	
+				chunk(buf.data());
+				i = 0;
+			}
+	
+			while (i < chunk_bytes - 8) {
+				buf[i++] = 0;
+			}
+	
+			write_u64(&buf[i], bit_length);
+	
+			chunk(buf.data());
+		}
+	
+		sha256_hash result;
+	
+		for (uint8_t i = 0; i != 8; ++i) {
+			write_u32(&result[i * 4], hash[i]);
+		}
+	
+		return result;
+	}
+
+	__device__ __host__ sha256_hash	sha256(const uint8_t* data, uint64_t length)
+	{
+		// First 32 bits of the fractional parts of the square roots of the first
+		// eight primes 2..19:
+		const uint32_t initial_hash_values[8] = {0x6a09e667,
+												 0xbb67ae85,
+												 0x3c6ef372,
+												 0xa54ff53a,
+												 0x510e527f,
+												 0x9b05688c,
+												 0x1f83d9ab,
+												 0x5be0cd19};
+	
+		return sha256_impl(initial_hash_values, data, length);
+	}
 	
 }
-
-
-/*********************** FUNCTION DEFINITIONS ***********************/
-__device__ void d_sha256_transform(SHA256_CTX *ctx, const BYTE data[])
-{
-	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
-
-	for (i = 0, j = 0; i < 16; ++i, j += 4)
-		m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
-	for ( ; i < 64; ++i)
-		m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-	a = ctx->state[0];
-	b = ctx->state[1];
-	c = ctx->state[2];
-	d = ctx->state[3];
-	e = ctx->state[4];
-	f = ctx->state[5];
-	g = ctx->state[6];
-	h = ctx->state[7];
-
-	for (i = 0; i < 64; ++i) {
-		t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
-		t2 = EP0(a) + MAJ(a,b,c);
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-	ctx->state[0] += a;
-	ctx->state[1] += b;
-	ctx->state[2] += c;
-	ctx->state[3] += d;
-	ctx->state[4] += e;
-	ctx->state[5] += f;
-	ctx->state[6] += g;
-	ctx->state[7] += h;
-}
-
-__device__ void d_sha256_init(SHA256_CTX *ctx)
-{
-	ctx->datalen = 0;
-	ctx->bitlen = 0;
-	ctx->state[0] = 0x6a09e667;
-	ctx->state[1] = 0xbb67ae85;
-	ctx->state[2] = 0x3c6ef372;
-	ctx->state[3] = 0xa54ff53a;
-	ctx->state[4] = 0x510e527f;
-	ctx->state[5] = 0x9b05688c;
-	ctx->state[6] = 0x1f83d9ab;
-	ctx->state[7] = 0x5be0cd19;
-}
-
-__device__ void d_sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
-{
-	WORD i;
-
-	for (i = 0; i < len; ++i) {
-		ctx->data[ctx->datalen] = data[i];
-		ctx->datalen++;
-		if (ctx->datalen == 64) {
-			d_sha256_transform(ctx, ctx->data);
-			ctx->bitlen += 512;
-			ctx->datalen = 0;
-		}
-	}
-}
-
-
-__device__ void d_sha256_pad(SHA256_CTX *ctx)
-{
-	WORD i;
-
-	//How many bytes exist in the remainder buffer
-	i = ctx->datalen;
-
-	//Pad whatever data is left in the buffer.
-	//If it's less than 56 bytes, 8 bytes required for bit length l
-	//For this application we are always the first case
-	if (ctx->datalen < 56) {
-		ctx->data[i++] = 0x80;
-		while (i < 56)
-			ctx->data[i++] = 0x00;
-	}
-	//Otherwise, pad with 0s and store l in its own message block
-	else {
-		ctx->data[i++] = 0x80;
-		while (i < 64)
-			ctx->data[i++] = 0x00;
-		d_sha256_transform(ctx, ctx->data);
-		memset(ctx->data, 0, 56);
-	}
-
-	//Store value of l
-	ctx->bitlen += ctx->datalen * 8;
-	ctx->data[63] = ctx->bitlen;
-	ctx->data[62] = ctx->bitlen >> 8;
-	ctx->data[61] = ctx->bitlen >> 16;
-	ctx->data[60] = ctx->bitlen >> 24;
-	ctx->data[59] = ctx->bitlen >> 32;
-	ctx->data[58] = ctx->bitlen >> 40;
-	ctx->data[57] = ctx->bitlen >> 48;
-	ctx->data[56] = ctx->bitlen >> 56;
-}
-
-__device__ void d_sha256_final(SHA256_CTX *ctx, BYTE hash[])
-{
-	WORD i;
-
-	d_sha256_pad(ctx);
-	d_sha256_transform(ctx, ctx->data);
-
-	// Since this implementation uses little endian byte ordering and SHA uses big endian,
-	// reverse all the bytes when copying the final state to the output hash.
-	for (i = 0; i < 4; ++i) {
-		hash[i]      = (ctx->state[0] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 4]  = (ctx->state[1] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 8]  = (ctx->state[2] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 12] = (ctx->state[3] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 16] = (ctx->state[4] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 20] = (ctx->state[5] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 24] = (ctx->state[6] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
-	}
-}
-
-
-//end
-
-
 
 
 typedef struct {
@@ -194,323 +202,50 @@ typedef struct {
 	uint32_t nonce;
 } Nonce_result;
 
-void initialize_nonce_result(Nonce_result *nr) {
-	nr->nonce_found = false;
-	nr->nonce = 0;
-}
-
-
-__device__ __host__ void sha256_change_nonce(SHA256_CTX *ctx, uint32_t nonce)
-{
-	#ifdef  __CUDA_ARCH__
-
-	#else
-
-	const uint32_t k[64] = {
-		0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-		0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-		0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-		0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-		0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-		0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-		0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-		0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
-	};
-
-	#endif
-
-	char *b = "0123456789abcdef";
-	unsigned char *a = (unsigned char *)b;
-	BYTE data[8] = {
-		a[((nonce >> 28) % 16)], a[((nonce >> 24) % 16)], a[((nonce >> 20) % 16)], 
-		a[((nonce >> 16) % 16)], a[((nonce >> 12) % 16)], a[((nonce >> 8)  % 16)],
-		a[((nonce >> 4)  % 16)], a[(nonce % 16)]
-	};
-
-	WORD i;
-
-	for (i = 0; i < 8; ++i) {
-		ctx->data[ctx->datalen] = data[i];
-		ctx->datalen++;
-		if (ctx->datalen == 64) {
-			WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
-
-			for (i = 0, j = 0; i < 16; ++i, j += 4)
-				m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
-			for ( ; i < 64; ++i)
-				m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-			a = ctx->state[0];
-			b = ctx->state[1];
-			c = ctx->state[2];
-			d = ctx->state[3];
-			e = ctx->state[4];
-			f = ctx->state[5];
-			g = ctx->state[6];
-			h = ctx->state[7];
-
-			for (i = 0; i < 64; ++i) {
-				t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
-				t2 = EP0(a) + MAJ(a,b,c);
-				h = g;
-				g = f;
-				f = e;
-				e = d + t1;
-				d = c;
-				c = b;
-				b = a;
-				a = t1 + t2;
-			}
-
-			ctx->state[0] += a;
-			ctx->state[1] += b;
-			ctx->state[2] += c;
-			ctx->state[3] += d;
-			ctx->state[4] += e;
-			ctx->state[5] += f;
-			ctx->state[6] += g;
-			ctx->state[7] += h;
-			ctx->bitlen += 512;
-			ctx->datalen = 0;
+uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
+	for (uint32_t nonce = 0; nonce < 0xffffffff; nonce++){
+		char data[length+8];
+		for (int i = 0; i<length; i ++){
+			data[i] = payload[i];
 		}
-	}
+		
+		const char *a = "0123456789abcdef";
 
-
-
+		data[length+0] = a[((nonce >> 28) % 16)];
+		data[length+1] = a[((nonce >> 24) % 16)];
+		data[length+2] = a[((nonce >> 20) % 16)];
+		data[length+3] = a[((nonce >> 16) % 16)];
+		data[length+4] = a[((nonce >> 12) % 16)];
+		data[length+5] = a[((nonce >>  8) % 16)];
+		data[length+6] = a[((nonce >>  4) % 16)];
+		data[length+7] = a[((nonce) % 16)];
 	
-}
-
-
-uint32_t CPU_mine(std::string payload, uint32_t difficulty) {
-
-	unsigned char *data = new unsigned char[payload.length() + 1];
-            
-	std::copy( payload.begin(), payload.end(), data );
-	data[payload.length()] = 0;
-	
-	int i;
-
-	Nonce_result h_nr;
-	initialize_nonce_result(&h_nr);
-	
-	
-
-    for(uint32_t nonce = 0; nonce<0xffffffff; nonce++) {
-        SHA256_CTX ctx;
-	sha256_init(&ctx);
-	sha256_update(&ctx, (unsigned char *) data, payload.length());	//ctx.state contains a-h
-	set_difficulty(ctx.difficulty, difficulty);
-		unsigned char hash[32];
-		sha256_change_nonce(&ctx, nonce);
-		sha256_final(&ctx, hash);
-
-		i=0;
-		while(hash[i] == (&ctx)->difficulty[i])
+		auto ptr = reinterpret_cast<const uint8_t*>(data);
+		sha2::sha256_hash hash = sha2::sha256(ptr, length+8);
+		uint32_t i = 0;
+		while (hash[i]==0){
 			i++;
-		if(hash[i] < (&ctx)->difficulty[i]) {
-			(&h_nr)->nonce_found = true;
-			(&h_nr)->nonce = nonce;
-			return h_nr.nonce;
 		}
-    }
-    return 0;
+		if(i>=difficulty){
+			return nonce;
+		}
+	}
+	return 0;
+
 }
 
-__global__ void GPU_mine(unsigned char *data, Nonce_result *nr , int *length, int *difficulty) {
-
-	SHA256_CTX ctx;
-	d_sha256_init(&ctx);
-	d_sha256_update(&ctx, (unsigned char *) data, *(length)-1);	//ctx.state contains a-h
-	d_set_difficulty(ctx.difficulty, *(difficulty));
-
-	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
-    sha256_change_nonce(&ctx, nonce);
-	unsigned char hash[32];
-	
-	// pad
-	WORD i;
-	i = (&ctx)->datalen;
-
-	//Pad whatever data is left in the buffer.
-	//If it's less than 56 bytes, 8 bytes required for bit length l
-	//For this application we are always the first case
-	if ((&ctx)->datalen < 56) {
-		(&ctx)->data[i++] = 0x80;
-		while (i < 56)
-			(&ctx)->data[i++] = 0x00;
-	}
-	//Otherwise, pad with 0s and store l in its own message block
-	else {
-		(&ctx)->data[i++] = 0x80;
-		while (i < 64)
-			(&ctx)->data[i++] = 0x00;
-		// transform
-		WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
-
-		for (i = 0, j = 0; i < 16; ++i, j += 4)
-			m[i] = ((&ctx)->data[j] << 24) | ((&ctx)->data[j + 1] << 16) | ((&ctx)->data[j + 2] << 8) | ((&ctx)->data[j + 3]);
-		for ( ; i < 64; ++i)
-			m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-		a = (&ctx)->state[0];
-		b = (&ctx)->state[1];
-		c = (&ctx)->state[2];
-		d = (&ctx)->state[3];
-		e = (&ctx)->state[4];
-		f = (&ctx)->state[5];
-		g = (&ctx)->state[6];
-		h = (&ctx)->state[7];
-
-		for (i = 0; i < 64; ++i) {
-			t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
-			t2 = EP0(a) + MAJ(a,b,c);
-			h = g;
-			g = f;
-			f = e;
-			e = d + t1;
-			d = c;
-			c = b;
-			b = a;
-			a = t1 + t2;
-		}
-
-		(&ctx)->state[0] += a;
-		(&ctx)->state[1] += b;
-		(&ctx)->state[2] += c;
-		(&ctx)->state[3] += d;
-		(&ctx)->state[4] += e;
-		(&ctx)->state[5] += f;
-		(&ctx)->state[6] += g;
-		(&ctx)->state[7] += h;
-
-		// end transform
-		memset((&ctx)->data, 0, 56);
-	}
-
-	//Store value of l
-	(&ctx)->bitlen += (&ctx)->datalen * 8;
-	(&ctx)->data[63] = (&ctx)->bitlen;
-	(&ctx)->data[62] = (&ctx)->bitlen >> 8;
-	(&ctx)->data[61] = (&ctx)->bitlen >> 16;
-	(&ctx)->data[60] = (&ctx)->bitlen >> 24;
-	(&ctx)->data[59] = (&ctx)->bitlen >> 32;
-	(&ctx)->data[58] = (&ctx)->bitlen >> 40;
-	(&ctx)->data[57] = (&ctx)->bitlen >> 48;
-	(&ctx)->data[56] = (&ctx)->bitlen >> 56;
-
-	// transform
-
-	WORD a, b, c, d, e, f, g, h, j, t1, t2, m[64];
-
-	for (i = 0, j = 0; i < 16; ++i, j += 4)
-		m[i] = ((&ctx)->data[j] << 24) | ((&ctx)->data[j + 1] << 16) | ((&ctx)->data[j + 2] << 8) | ((&ctx)->data[j + 3]);
-	for ( ; i < 64; ++i)
-		m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
-
-	a = (&ctx)->state[0];
-	b = (&ctx)->state[1];
-	c = (&ctx)->state[2];
-	d = (&ctx)->state[3];
-	e = (&ctx)->state[4];
-	f = (&ctx)->state[5];
-	g = (&ctx)->state[6];
-	h = (&ctx)->state[7];
-
-	for (i = 0; i < 64; ++i) {
-		t1 = h + EP1(e) + CH(e,f,g) + k[i] + m[i];
-		t2 = EP0(a) + MAJ(a,b,c);
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-	(&ctx)->state[0] += a;
-	(&ctx)->state[1] += b;
-	(&ctx)->state[2] += c;
-	(&ctx)->state[3] += d;
-	(&ctx)->state[4] += e;
-	(&ctx)->state[5] += f;
-	(&ctx)->state[6] += g;
-	(&ctx)->state[7] += h;
-
-	// end transform
-
-	for (i = 0; i < 4; ++i) {
-		hash[i]      = ((&ctx)->state[0] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 4]  = ((&ctx)->state[1] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 8]  = ((&ctx)->state[2] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 12] = ((&ctx)->state[3] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 16] = ((&ctx)->state[4] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 20] = ((&ctx)->state[5] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 24] = ((&ctx)->state[6] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 28] = ((&ctx)->state[7] >> (24 - i * 8)) & 0x000000ff;
-	}
-
-	// Check hash
-	i=0;
-	while(hash[i] == (&ctx)->difficulty[i])
-		i++;
-	if(hash[i] < (&ctx)->difficulty[i]) {
-		nr->nonce_found = true;
-		nr->nonce = nonce;
-	}
-	
-    
+__global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t length, uint32_t* result) {
+	result = 0;
 }
 
 uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type) {
     switch (reduction_type) {
         case MineType::MINE_CPU: {
-            return CPU_mine(payload, difficulty);
+            return CPU_mine(payload.c_str(), difficulty, payload.length());
         }
 
         case MineType::MINE_GPU: {
-            unsigned char *data = new unsigned char[payload.length() + 1];
-			int length = payload.length()+1;
-			int dif = (int) difficulty;
-            
-            std::copy( payload.begin(), payload.end(), data );
-            data[payload.length()] = 0;
-            
-
-            Nonce_result h_nr;
-            initialize_nonce_result(&h_nr);
-            
-			unsigned char *d_data;
-			int *d_len;
-			int *d_dif;
-            Nonce_result *d_nr;
-
-
-            CUDA_SAFE_CALL(cudaMalloc((void **)&d_data, length * sizeof(unsigned char)));
-            CUDA_SAFE_CALL(cudaMalloc((void **)&d_nr, sizeof(Nonce_result)));
-            CUDA_SAFE_CALL(cudaMalloc((void **)&d_len, sizeof(int)));
-            CUDA_SAFE_CALL(cudaMalloc((void **)&d_dif, sizeof(int)));
-            CUDA_SAFE_CALL(cudaMemcpy(d_data, (void *) &data, length * sizeof(unsigned char), cudaMemcpyHostToDevice));
-            CUDA_SAFE_CALL(cudaMemcpy(d_nr, (void *) &h_nr, sizeof(Nonce_result), cudaMemcpyHostToDevice));
-            CUDA_SAFE_CALL(cudaMemcpy(d_len, (void *) &length, sizeof(int), cudaMemcpyHostToDevice));
-            CUDA_SAFE_CALL(cudaMemcpy(d_dif, (void *) &dif, sizeof(int), cudaMemcpyHostToDevice));
-
-            // 8192 * 8192 * 64 = 0xffffffff + 1
-
-			dim3 gridDim(4096,1);
-			// dim3 gridDim(1024,1);
-
-			dim3 blockDim(512,1);
-            GPU_mine<<<gridDim, blockDim>>>(d_data, d_nr, d_len, d_dif);
-
-			cudaDeviceSynchronize();
-
-            CUDA_SAFE_CALL(cudaMemcpy((void *) &h_nr, d_nr, sizeof(Nonce_result), cudaMemcpyDeviceToHost));
-
-			cudaDeviceSynchronize();
-
-			return h_nr.nonce;
+            return 0;
         }
 
     }
