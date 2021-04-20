@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 
     Block block(candidate_block, nonce);
     // Block block_gpu(candidate_block, nonce_gpu);
-    blockchain.addBlock(block_gpu);
+    blockchain.addBlock(block);
     ofstream ofs("output.txt");
     ofs << blockchain.str();
 

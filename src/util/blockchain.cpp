@@ -58,7 +58,7 @@ print_hash(char* buf, const T& hash)
 
 void Block::calculateHash(char *hash) {
     string payload_str = this->candidate_block.getHashableString();
-    auto length = payload_str.lengt();
+    auto length = payload_str.length();
     const char *payload = payload_str.c_str();
     char data[length+8];
     for (int i = 0; i<length; i ++){
@@ -91,7 +91,7 @@ bool Block::verify_nonce(){
     while (hash[i] == '0'){
         i++;
     }
-    return i >= difficulty;
+    return i >= current_difficulty;
     return false;
 }
 
