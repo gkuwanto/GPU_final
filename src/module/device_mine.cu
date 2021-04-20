@@ -219,7 +219,7 @@ uint32_t CPU_mine(const char* payload, uint32_t difficulty, uint32_t length) {
 
 }
 
-__global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t length, uint32_t* result) {
+__global__ void GPU_mine(char* payload, uint32_t difficulty, uint32_t length, uint32_t* result) {
 	uint32_t nonce = gridDim.x*blockDim.x*blockIdx.y + blockDim.x*blockIdx.x + threadIdx.x;
 	char data[160];
 	for (int i = 0; i<length; i ++){
@@ -256,15 +256,18 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
         }
 
         case MineType::MINE_GPU: {
-			const char *data = payload.c_str();
+			char * data = new char[payload.size() + 1];
+			std::copy(payload.begin(), payload.end(), data);
+			data[str.size()] = '\0';
+			
 			uint32_t length = payload.length();
 			uint32_t result = 0;
 
 			uint32_t *dev_result;
-			const char *dev_data;
-			cudaMalloc((void **) &dev_data, (length+1) * sizeof(const char));
+			char *dev_data;
+			cudaMalloc((void **) &dev_data, (length+1) * sizeof(char));
 			cudaMalloc((void **) &dev_result, sizeof(uint32_t));
-			cudaMemcpy(dev_data, data, (length+1) * sizeof(const char), cudaMemcpyHostToDevice);
+			cudaMemcpy(dev_data, data, (length+1) * sizeof(char), cudaMemcpyHostToDevice);
 
 			dim3 block(1024, 1);
 			dim3 thread(512, 1);
