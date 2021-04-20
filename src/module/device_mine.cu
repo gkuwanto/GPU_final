@@ -8,9 +8,8 @@
 using namespace std;
 
 template <size_t N>
-using hash_array = std::array<uint8_t, N>;
 
-using sha256_hash = hash_array<32>;
+using sha256_hash = uint8_t[32];
 
 // SHA-2 uses big-endian integers.
 __device__ void write_u32(uint8_t* dest, uint32_t x)
