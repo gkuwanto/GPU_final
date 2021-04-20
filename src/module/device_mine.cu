@@ -147,7 +147,7 @@ namespace sha2 {
 		{
 			std::array<uint8_t, chunk_bytes> buf;
 			for (int i =0 ; i<length; i++){
-				buf[i] = data[i]
+				buf[i] = data[i];
 			}
 	
 			auto i = length;
@@ -255,8 +255,8 @@ __global__ void GPU_mine(const char* payload, uint32_t difficulty, uint32_t leng
 	data[length+7] = a[((nonce) % 16)];
 
 	auto ptr = reinterpret_cast<const uint8_t*>(data);
-	// auto hash = sha2::sha256(ptr, length+8);
-	uint32_t hash[32] = {0};
+	auto hash = sha2::sha256(ptr, length+8);
+	// uint32_t hash[32] = {0};
 	uint32_t i = 0;
 	while (hash[i]==0){
 		i++;
