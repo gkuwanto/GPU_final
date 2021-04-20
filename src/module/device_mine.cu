@@ -86,7 +86,7 @@ namespace sha2 {
 			0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
 			0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 	
-		auto chunk = [&hash, &k] __device__ __host__(const uint8_t* chunk_data) {
+		auto chunk = [=] __device__ __host__(const uint8_t* chunk_data, uint32_t* hash, uint32_t* k) {
 			uint32_t w[64] = {0};
 	
 			for (int i = 0; i != 16; ++i) {
@@ -139,7 +139,7 @@ namespace sha2 {
 		};
 	
 		while (length >= chunk_bytes) {
-			chunk(data);
+			chunk(data, hash, k);
 			data += chunk_bytes;
 			length -= chunk_bytes;
 		}
@@ -156,7 +156,7 @@ namespace sha2 {
 					buf[i++] = 0;
 				}
 	
-				chunk(buf.data());
+				chunk(buf.data(), hash, k);
 				i = 0;
 			}
 	
@@ -166,7 +166,7 @@ namespace sha2 {
 	
 			write_u64(&buf[i], bit_length);
 	
-			chunk(buf.data());
+			chunk(buf.data(), hash, k);
 		}
 	
 		sha256_hash result;
