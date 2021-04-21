@@ -1,11 +1,10 @@
+#include <boost/algorithm/hex.hpp>
+#include <crypto++/dsa.h>
+#include <crypto++/hex.h>
+#include <crypto++/oids.h>
 #include <iomanip>
 #include <random>
 #include <sstream>
-#include <boost/algorithm/hex.hpp>
-#include <crypto++/cryptlib.h>
-#include <crypto++/hex.h>
-#include <crypto++/oids.h>
-#include <crypto++/sha.h>
 #include "utils.hpp"
 
 using namespace std;
@@ -114,6 +113,26 @@ string flip_hex_string_endian(string value) {
     return value;
 }
 
+/*  Converts hex string to respective char  */
+void hex_string_to_char(string& value, unsigned char* value_in_char_array, int len) {
+    stringstream value_stream;
+    vector<unsigned char> value_in_bytes;
+
+    unsigned int c;
+    unsigned int offset = 0;
+    while (offset < value.length()) {
+        value_stream.clear();
+        value_stream << hex << value.substr(offset, 2);
+        value_stream >> c;
+
+        value_in_bytes.push_back((unsigned char) c);
+        offset += 2;
+    }
+
+    unsigned char* temp_value_in_char_array = value_in_bytes.data();
+    memmove(value_in_char_array, temp_value_in_char_array, len);
+}
+
 
 /*  Generate Bitcoin accounts   */
 vector<Account> generate_accounts(int n) {
@@ -129,8 +148,8 @@ vector<Account> generate_accounts(int n) {
 
 /*  Hashes payload with SHA256 hash algorithm   */
 string hash_sha256(const string& payload) {
-    byte digest[CryptoPP::SHA256::DIGESTSIZE];
-    CryptoPP::SHA256().CalculateDigest(digest, (byte *) payload.c_str(), payload.size());
+    unsigned char digest[CryptoPP::SHA256::DIGESTSIZE];
+    CryptoPP::SHA256().CalculateDigest(digest, (unsigned char *) payload.c_str(), payload.size());
 
     string hashed_payload;
     CryptoPP::HexEncoder encoder;
@@ -144,7 +163,7 @@ string hash_sha256(const string& payload) {
 /*  Generates a public key object from public key string  */
 CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(string public_key) {
     CryptoPP::HexDecoder decoder;
-    decoder.Put((byte*) &public_key[0], public_key.size());
+    decoder.Put((unsigned char*) &public_key[0], public_key.size());
     decoder.MessageEnd();
 
     CryptoPP::ECP::Point elliptic_curve_points;
@@ -161,16 +180,16 @@ CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_
 }
 
 /*  Verifies a message with the provided signature and public key  */
-bool verify_message(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, string signature, string message) {
+bool verify_message(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, unsigned char* signature, int signature_len, unsigned char* message, int message_len) {
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier(public_key);
 
-    bool result = true;
+    // Convert DER to P1363
+    unsigned char p1363_signature[verifier.SignatureLength()];
+    size_t encoded_size = CryptoPP::DSAConvertSignatureFormat(p1363_signature, verifier.SignatureLength(), CryptoPP::DSA_P1363, signature, signature_len, CryptoPP::DSA_DER);
+    string p1363_signature_string((char *) p1363_signature, verifier.SignatureLength());
+    p1363_signature_string.resize(encoded_size);
 
-    CryptoPP::StringSource ss(signature + message, true /*pump all*/,
-        new CryptoPP::SignatureVerificationFilter(verifier,
-            new CryptoPP::ArraySink((byte*) &result, sizeof(result))
-        )
-    );
+    bool result = verifier.VerifyMessage(message, message_len, (unsigned char *) p1363_signature_string.data(), p1363_signature_string.size());
 
     return result;
 }

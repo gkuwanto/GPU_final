@@ -25,11 +25,12 @@ std::string float_to_long_hex(float value);
 long long int hex_string_to_long(std::string hex_string);
 void variable_int_to_hex_string(int value, std::string& prefix, std::string& size);
 std::string flip_hex_string_endian(std::string value);
+void hex_string_to_char(std::string& value, unsigned char* value_in_char_array, int len);
 
 std::vector<Account> generate_accounts(int n);
 
 std::string hash_sha256(const std::string& string);
 CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey generate_public_key_from_string(std::string public_key);
-bool verify_message(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, std::string signature, std::string string);
+bool verify_message(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& public_key, unsigned char* signature, int signature_len, unsigned char* string, int message_len);
 
 #endif

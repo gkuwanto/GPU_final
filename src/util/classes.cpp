@@ -1,9 +1,9 @@
-#include <random>
-#include <sstream>
 #include <boost/algorithm/hex.hpp>
-#include <crypto++/asn.h>
+#include <crypto++/dsa.h>
 #include <crypto++/oids.h>
 #include <crypto++/osrng.h>
+#include <random>
+#include <sstream>
 #include "classes.hpp"
 #include "utils.hpp"
 
@@ -12,7 +12,7 @@ using namespace std;
 Transaction::Transaction() { }
 Transaction::Transaction(const Transaction& transaction) {
     this->version = transaction.version;
-    this->input_count_prefix = transaction.version;
+    this->input_count_prefix = transaction.input_count_prefix;
     this->input_count = transaction.input_count;
     
     for (unsigned int i = 0; i < transaction.input.size(); i++) {
@@ -170,7 +170,9 @@ string Input::serialize() {
         container += this->script_sig_size_prefix;
     }
     container += this->script_sig_size;
-    container += this->script_sig;
+    if (this->script_sig.length() > 0) {
+        container += this->script_sig;
+    }
     container += this->sequence;
 
     return container;
@@ -204,7 +206,7 @@ Output::Output() { }
 Output::Output(const Output& output) {
     this->value = output.value;
     
-    if (this-script_pub_key_prefix.length() > 0) {
+    if (output.script_pub_key_prefix.length() > 0) {
         this->script_pub_key_prefix = output.script_pub_key_prefix;
     }
     this->script_pub_key_size = output.script_pub_key_size;
@@ -260,6 +262,28 @@ void Account::setCoinList(vector<std::tuple<double, string, int>>& coin_list) {
 }
 CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& Account::getPublicKey() {
     return this->public_key;
+}
+std::string Account::getPublicKeyStr() {
+    stringstream public_key_stream;
+    public_key_stream << hex << this->public_key.GetPublicElement().x;
+    string x = public_key_stream.str();
+    x.pop_back();
+    if (x.length() % 2 != 0) {
+        x = "0" + x;
+    }
+
+    public_key_stream.str(string());
+    public_key_stream.clear();
+    public_key_stream << hex << this->public_key.GetPublicElement().y;
+    string y = public_key_stream.str();
+    y.pop_back();
+    if (y.length() % 2 != 0) {
+        y = "0" + y;
+    }
+
+    string public_key = x + y;
+
+    return public_key;
 }
 CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey& Account::getPrivateKey() {
     return this->private_key;
@@ -351,17 +375,13 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
         ss << setfill('0') << setw(8) << hex << get<2>(selected_input);
         input.setVOUT(flip_hex_string_endian(ss.str()));
 
-        string signature;
-        CryptoPP::AutoSeededRandomPool prng;
-        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer(private_key);
-        CryptoPP::StringSource s(flip_hex_string_endian(float_to_long_hex(get<0>(selected_input))), true, new CryptoPP::SignerFilter(prng, signer, new CryptoPP::StringSink(signature)));
-
-        input.setScriptSig(boost::algorithm::hex(signature));
+        string signature = this->getPublicKeyStr();
         string script_sig_size_prefix;
         string script_sig_size;
-        variable_int_to_hex_string(signature.length(), script_sig_size_prefix, script_sig_size);
+        variable_int_to_hex_string(signature.length()/2, script_sig_size_prefix, script_sig_size);
         input.setScriptSigSizePrefix(script_sig_size_prefix);
         input.setScriptSigSize(script_sig_size);
+        input.setScriptSig(signature);
         input.setSequence("FFFFFFFF");
 
         spendable_coins += get<0>(selected_input);
@@ -396,29 +416,12 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
         }
         output.setValue(flip_hex_string_endian(float_to_long_hex(amount)));
 
-        stringstream public_key_stream;
-        public_key_stream << hex << selected_account.getPublicKey().GetPublicElement().x;
-        string x = public_key_stream.str();
-        x.pop_back();
-        if (x.length() % 2 != 0) {
-            x = "0" + x;
-        }
-
-        public_key_stream.str(string());
-        public_key_stream.clear();
-        public_key_stream << hex << selected_account.getPublicKey().GetPublicElement().y;
-        string y = public_key_stream.str();
-        y.pop_back();
-        if (y.length() % 2 != 0) {
-            y = "0" + y;
-        }
-
-        string public_key = x + y;
+        string public_key = selected_account.getPublicKeyStr();
         output.setScriptPubKey(public_key);
 
         string script_pub_key_prefix;
         string script_pub_key_size;
-        variable_int_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
+        variable_int_to_hex_string(public_key.length()/2, script_pub_key_prefix, script_pub_key_size);
         output.setScriptPubKeyPrefix(script_pub_key_prefix);
         output.setScriptPubKeySize(script_pub_key_size);
 
@@ -434,6 +437,67 @@ Transaction Account::payToAccount(vector<Account>& accounts) {
     transaction.setOutput(outputs);
 
     transaction.setLocktime("00000000");
+
+    // Sign transactions
+    Transaction temp_transaction(transaction);
+    int original_inputs_size = inputs.size();
+    for (int i = 0; i < original_inputs_size; i++) {
+        vector<Input> temp_inputs;
+        
+        for (int j = 0; j < original_inputs_size; j++) {
+            if (i == j) {
+                temp_inputs.push_back(inputs[i]);
+            } else {
+                Input input;
+                input.setTxID(inputs[i].getTxID());
+                input.setVOUT(inputs[i].getVOUT());
+                input.setScriptSig("");
+                input.setScriptSigSize("00");
+                input.setScriptSigSizePrefix("");
+                input.setSequence("FFFFFFFF");
+
+                temp_inputs.push_back(input);
+            }
+        }
+
+        temp_transaction.setInput(temp_inputs);
+        string serialized_temp_transaction = temp_transaction.serialize();
+
+        // Append SIGHASH 0x01
+        serialized_temp_transaction += "01000000";
+
+        // Hash twice with SHA256
+        string hashed_serialized_temp_transaction = hash_sha256(hash_sha256(serialized_temp_transaction));
+
+        unsigned char hashed_temp_transaction_bytes[32];
+        hex_string_to_char(hashed_serialized_temp_transaction, hashed_temp_transaction_bytes, 32);
+
+        string signature;
+        CryptoPP::AutoSeededRandomPool prng;
+        CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer(private_key);
+        CryptoPP::StringSource s(hashed_temp_transaction_bytes, 32, true, new CryptoPP::SignerFilter(prng, signer, new CryptoPP::StringSink(signature)));
+
+        string der_signature;
+        der_signature.resize(3+3+3+2+signature.size());
+
+        size_t encoded_size = CryptoPP::DSAConvertSignatureFormat((unsigned char *) (&der_signature[0]), der_signature.length(), CryptoPP::DSA_DER, (unsigned char *) signature.data(), signature.size(), CryptoPP::DSA_P1363);
+        der_signature.resize(encoded_size);
+
+        string script_sig_size;
+        string script_sig_size_prefix;
+        variable_int_to_hex_string(der_signature.size(), script_sig_size_prefix, script_sig_size);
+        
+        transaction.getInput()[i].setScriptSigSize(script_sig_size);
+        transaction.getInput()[i].setScriptSigSizePrefix(script_sig_size_prefix);
+
+        ostringstream signature_stream;
+        for (unsigned int i = 0; i < der_signature.size(); i++) {
+            signature_stream << hex << setfill('0') << setw(2) << (unsigned) (unsigned char) der_signature[i];
+        }
+        signature_stream << hex << setfill('0') << setw(2) << 0x01;
+
+        transaction.getInput()[i].setScriptSig(signature_stream.str());
+    }
 
     // Set TX ID to outputs
     string tx_id = hash_sha256(hash_sha256(boost::algorithm::unhex(transaction.serialize())));
@@ -525,7 +589,7 @@ Transaction Coinbase::payToAccount(vector<Account>& accounts) {
 
         string script_pub_key_prefix;
         string script_pub_key_size;
-        variable_int_to_hex_string(public_key.length(), script_pub_key_prefix, script_pub_key_size);
+        variable_int_to_hex_string(public_key.length()/2, script_pub_key_prefix, script_pub_key_size);
         output.setScriptPubKeyPrefix(script_pub_key_prefix);
         output.setScriptPubKeySize(script_pub_key_size);
 
