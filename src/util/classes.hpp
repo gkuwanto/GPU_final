@@ -118,6 +118,7 @@ class Account {
         void setCoinList(std::vector<std::tuple<double, std::string, int>>&);
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey& getPrivateKey();
         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey& getPublicKey();
+        std::string getPublicKeyStr();
         std::vector<std::tuple<double, std::string, int>>& getCoinList();
 };
 
