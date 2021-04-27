@@ -5,6 +5,6 @@
 enum MineType { MINE_CPU, MINE_GPU };
 
 uint32_t CPU_mine(std::string, uint32_t);
-uint32_t device_mine_dispatcher(std::string, uint32_t, MineType);
+uint32_t device_mine_dispatcher(std::string, uint32_t, MineType, uint32_t);
 
 #endif
