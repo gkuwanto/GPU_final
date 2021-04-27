@@ -270,8 +270,8 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 			cudaMemcpy(dev_data, data, (length+1) * sizeof(char), cudaMemcpyHostToDevice);
 
 			uint32_t current = 0;
-			uint32_t total = 0xffffffff/(blockSize * 512) + 1;
-			while (current < 4096){
+			uint32_t final = 0xffffffff/(blockSize * 512) + 1;
+			while (current < final){
 				dim3 block(blockSize, 1);
 				dim3 thread(512, 1);
 				GPU_mine<<<block, thread >>>(dev_data, difficulty, length, dev_result, blockSize*512*current);
