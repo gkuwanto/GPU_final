@@ -249,7 +249,7 @@ __global__ void GPU_mine(char* payload, uint32_t difficulty, uint32_t length, ui
 	}
 }
 
-uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type) {
+uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type, uint32_t blockSize=2048) {
     switch (reduction_type) {
         case MineType::MINE_CPU: {
             return CPU_mine(payload.c_str(), difficulty, payload.length());
@@ -270,10 +270,11 @@ uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineTy
 			cudaMemcpy(dev_data, data, (length+1) * sizeof(char), cudaMemcpyHostToDevice);
 
 			uint32_t current = 0;
+			uint32_t total = 0xffffffff/(blockSize * 512) + 1;
 			while (current < 4096){
-				dim3 block(2048, 1);
+				dim3 block(blockSize, 1);
 				dim3 thread(512, 1);
-				GPU_mine<<<block, thread >>>(dev_data, difficulty, length, dev_result, 1048576*current);
+				GPU_mine<<<block, thread >>>(dev_data, difficulty, length, dev_result, blockSize*512*current);
 	
 				cudaDeviceSynchronize();
 	
