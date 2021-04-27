@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 
     for (int i = 8; i < 17; i++){
 
-        uint32_t blockSize = 1<<i
+        uint32_t blockSize = 1<<i;
         MineType m_type_2 = MineType::MINE_GPU;
         float mine_time_gpu;
         START_TIMER();
