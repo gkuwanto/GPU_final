@@ -249,7 +249,7 @@ __global__ void GPU_mine(char* payload, uint32_t difficulty, uint32_t length, ui
 	}
 }
 
-uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type, uint32_t blockSize=2048) {
+uint32_t device_mine_dispatcher(std::string payload, uint32_t difficulty, MineType reduction_type, uint32_t blockSize) {
     switch (reduction_type) {
         case MineType::MINE_CPU: {
             return CPU_mine(payload.c_str(), difficulty, payload.length());
